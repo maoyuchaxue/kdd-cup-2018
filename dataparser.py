@@ -1,6 +1,6 @@
 import csv
 
-## [aqstation, longitude, altitude]
+## [aqstation, longitude, altitude, stationtype]
 def getAqStation(city):
     aq_station_list = []
     if city == "beijing":
