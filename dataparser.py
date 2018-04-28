@@ -145,8 +145,8 @@ def genEnhancedParsing(gridid):
 
      
 if __name__ == "__main__":
-#    genMeoPrepocessed("beijing")
-#    genMeoPrepocessed("london")
+    genMeoPrepocessed("beijing")
+    genMeoPrepocessed("london")
     gridlist = getGridList("beijing")
     for grid in gridlist:
         genEnhancedParsing(grid[0])
