@@ -23,7 +23,13 @@ def initAqStation(city):
                 aqstation.append(tmplist)
     return aqstation
 
-aqstation = initAqStation("beijing")
-print len(aqstation)
-for station in aqstation:
-    print station
+def rewriteAqStation(aqstation, city):
+    csvFile = open("data/" + city + "_aqstation.csv", "w")
+    writer =  csv.writer(csvFile)
+    for i in range(len(aqstation)):
+        writer.writerow(aqstation[i])
+    csvFile.close()
+
+if __name__ == "__main__":
+    aqstation = initAqStation("beijing")
+    rewriteAqStation(aqstation, "beijing")
