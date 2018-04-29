@@ -33,7 +33,7 @@ def genMeoPrepocessed(city):
     writerlist = {}
 
     for grid in gridlist:
-        fn = "data/preprocessed/rawdata/" + grid[0] + ".csv"
+        fn = "data/preprocessed/rawdata/meo_data/" + city + "/" + grid[0] + ".csv"
         csv_file = open(fn, 'w')
         csvfilelist.append(csv_file)
         writerlist[grid[0]] = csv.writer(csv_file)
@@ -116,10 +116,10 @@ def updatelist(datalist, newdata, timetype):
         res = res + tmpres
     return res
 
-def genEnhancedParsing(gridid):
-    readfn = "data/preprocessed/rawdata/" + gridid + ".csv"
-    writefn = "data/preprocessed/hourunit/" + gridid + ".csv"
-    writefn2 = "data/preprocessed/dayunit/" + gridid + ".csv"
+def genEnhancedParsing(city, gridid):
+    readfn = "data/preprocessed/rawdata/meo_data/" + city + "/" + gridid + ".csv"
+    writefn = "data/preprocessed/hourunit/meo_data/" + city + "/" + gridid + ".csv"
+    writefn2 = "data/preprocessed/dayunit/meo_data/" + city + "/" + gridid + ".csv"
     csv_file = csv.reader(open(readfn, 'r'))
     csv_file2 = csv.writer(open(writefn, 'w'))
     csv_file3 = csv.writer(open(writefn2, 'w'))
@@ -143,8 +143,109 @@ def genEnhancedParsing(gridid):
             dayres = updatelist(daylist, daydata, 1)    
             csv_file3.writerow(res + dayres)
 
-     
+def genAqEnhancedParsing(city, stationid):
+    readfn = "data/preprocessed/rawdata/aq_data/" + city + "/" + stationid + ".csv"
+    writefn = "data/preprocessed/hourunit/aq_data/" + city + "/" + stationid + ".csv"
+    writefn2 = "data/preprocessed/dayunit/aq_data/" + city + "/" + stationid + ".csv"
+    csv_file = csv.reader(open(readfn, 'r'))
+    csv_file2 = csv.writer(open(writefn, 'w'))
+    csv_file3 = csv.writer(open(writefn2, 'w'))
+
+    hlist = []
+    daylist = []
+
+    for line in csv_file:
+        time = line[0]
+
+        res = line
+        newdata = line[1:]
+
+        hres = updatelist(hlist, newdata, 0) 
+        res = res + hres
+        csv_file2.writerow(res)
+
+        if time.find("23:00:00") != -1:
+            daydata = hres[15: ]
+            res = [time.split(' ')[0]]
+            dayres = updatelist(daylist, daydata, 1)    
+            csv_file3.writerow(res + dayres)
+
+def rewriteAqRawData(datalist, vallist, valcnt, city, stationid, gval, gcnt, a):
+    print stationid
+    fn = "data/preprocessed/rawdata/aq_data/" + city + "/" + stationid + ".csv"
+    if a:
+        csv_file = open(fn, 'a')
+    else:
+        csv_file = open(fn, 'w')
+    csv_writer = csv.writer(csv_file)
+
+    for data in datalist:
+        for i in range(1, len(data)):
+            if data[i] == "":
+                if valcnt[i - 1] == 0:
+                    data[i] = gval[i - 1] * 1.0 / gcnt[i - 1]
+                else:
+                    data[i] = vallist[i - 1] * 1.0 / valcnt[i - 1]
+        csv_writer.writerow(data)
+    for i in range(len(vallist)):
+        vallist[i] = 0
+        valcnt[i] = 0
+    csv_file.close()
+
+def genRawAqData(city, isforecast, a):
+    if city == "beijing":
+        if a:
+            fn = "data/beijing_201802_201803_aq.csv"
+        else:
+            fn = "data/beijing_17_18_aq.csv"
+        stationindex = 0
+        dataindex = 2
+        tmpval = [0, 0, 0, 0, 0, 0]
+        valcnt = [0, 0, 0, 0, 0, 0]
+        gval = [0, 0, 0, 0, 0, 0]
+        gcnt = [0, 0, 0, 0, 0, 0]
+        datalen = 8
+    if city == "london":
+        if isforecast:
+            fn = "data/London_historical_aqi_forecast_stations_20180331.csv"
+            stationindex = 2
+            dataindex = 3
+            datalen = 6
+        else:
+            fn = "data/London_historical_aqi_other_stations_20180331.csv"
+            stationindex = 0
+            dataindex = 2
+            datalen = 5
+        tmpval = [0, 0, 0]
+        valcnt = [0, 0, 0]
+        gval = [0, 0, 0]
+        gcnt = [0, 0, 0]
+
+    csv_file = csv.reader(open(fn, 'r'))        
+    is_firstline = True
+    tmpstation = ""
+    timeindex = 1
+    tmplist = []
+    for line in csv_file:
+        if is_firstline:
+            is_firstline = False
+        else:
+            if tmpstation != line[stationindex]:
+                if tmpstation != "":
+                    for i in range(len(tmpval)):
+                        gval[i] = gval[i] + tmpval[i]
+                        gcnt[i] = gcnt[i] + valcnt[i]
+                    rewriteAqRawData(tmplist, tmpval, valcnt, city, tmpstation, gval, gcnt, a)
+                tmplist = []
+            tmpstation = line[stationindex]
+            tmplist.append([line[timeindex]] + line[dataindex: datalen])
+            for i in range(dataindex, datalen):
+                if line[i] != "":
+                    valcnt[i - dataindex] = valcnt[i - dataindex] + 1
+                    tmpval[i - dataindex] = tmpval[i - dataindex] + float(line[i])
+    
 if __name__ == "__main__":
+    '''
     genMeoPrepocessed("beijing")
     genMeoPrepocessed("london")
     gridlist = getGridList("beijing")
@@ -153,3 +254,8 @@ if __name__ == "__main__":
     gridlist = getGridList("london")
     for grid in gridlist:
         genEnhancedParsing(grid[0])
+    '''
+    genRawAqData("beijing", True, False)
+    genRawAqData("beijing", True, True)
+    genRawAqData("london", False, False)
+    genRawAqData("london", True, False)
