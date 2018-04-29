@@ -91,25 +91,42 @@ def calWind(windd1, windd2, winds1, winds2):
     return windd, winds
 
 # temperature, pressure, humidity, wind_direction, wind_speed/kph
-def genListRes(data, l):
-    res = [0, 0, 0, 0, 0]
+def genListRes(data, l, datakind):
     if len(data) >= l:
-        # temperature, pressure and humidity
-        for datatype in range(3):
+        # meo data
+        if datakind == 0:
+            res = [0, 0, 0, 0, 0]
+            # temperature, pressure and humidity
+            for datatype in range(3):
+                for index in range(len(data) - l, len(data)):
+                    res[datatype] = res[datatype] + float(data[index][datatype])
+                res[datatype] = res[datatype] * 1.0 / l
+            
+            # wind_direction and wind_speed
             for index in range(len(data) - l, len(data)):
-                res[datatype] = res[datatype] + float(data[index][datatype])
-            res[datatype] = res[datatype] * 1.0 / l
-        
-        # wind_direction and wind_speed
-        for index in range(len(data) - l, len(data)):
-            res[3], res[4] = calWind(res[3], float(data[index][3]), res[4], float(data[index][4]))   
-        res[4] = res[4] * 1.0 / l
-        return res
+                res[3], res[4] = calWind(res[3], float(data[index][3]), res[4], float(data[index][4]))   
+            res[4] = res[4] * 1.0 / l
+
+            for i in range(len(res)):
+                res[i] = round(res[i], 4)
+            return res
+        else:
+            # aqdata
+            res = []
+            for i in range(datakind):
+                res.append(0)
+            for datatype in range(datakind):
+                for index in range(len(data) - l, len(data)):
+                    res[datatype] = res[datatype] + float(data[index][datatype])
+                res[datatype] = res[datatype] * 1.0 / l
+            for i in range(len(res)):
+                res[i] = round(res[i], 4)
+            return res
     else:
         return []          
 
 
-def updatelist(datalist, newdata, timetype):
+def updatelist(datalist, newdata, timetype, datatype):
     res = []
     datalist.append(newdata)
     if timetype == 0:
@@ -119,7 +136,7 @@ def updatelist(datalist, newdata, timetype):
     if len(datalist) > timelist[-1]:
         datalist.pop(0)
     for time in timelist:
-        tmpres = genListRes(datalist, time)
+        tmpres = genListRes(datalist, time, datatype)
         res = res + tmpres
     return res
 
@@ -140,16 +157,19 @@ def genEnhancedParsing(city, gridid):
         res = line
         newdata = line[1:]
 
-        hres = updatelist(hlist, newdata, 0) 
+        hres = updatelist(hlist, newdata, 0, 0) 
         res = res + hres
         csv_file2.writerow(res)
 
         if time.find("23:00:00") != -1:
             daydata = hres[15: ]
             res = [time.split(' ')[0]]
-            dayres = updatelist(daylist, daydata, 1)    
+            dayres = updatelist(daylist, daydata, 1, 0)    
             csv_file3.writerow(res + dayres)
 
+## aq
+# london pm2.5 pm10 no2
+# beijing PM2.5,PM10,NO2,CO,O3,SO2
 def genAqEnhancedParsing(city, stationid):
     readfn = "data/preprocessed/rawdata/aq_data/" + city + "/" + stationid + ".csv"
     writefn = "data/preprocessed/hourunit/aq_data/" + city + "/" + stationid + ".csv"
@@ -157,6 +177,11 @@ def genAqEnhancedParsing(city, stationid):
     csv_file = csv.reader(open(readfn, 'r'))
     csv_file2 = csv.writer(open(writefn, 'w'))
     csv_file3 = csv.writer(open(writefn2, 'w'))
+
+    if city == "beijing":
+        datakind = 6
+    else:
+        datakind = 3
 
     hlist = []
     daylist = []
@@ -167,18 +192,18 @@ def genAqEnhancedParsing(city, stationid):
         res = line
         newdata = line[1:]
 
-        hres = updatelist(hlist, newdata, 0) 
+        hres = updatelist(hlist, newdata, 0, datakind) 
         res = res + hres
         csv_file2.writerow(res)
 
-        if time.find("23:00:00") != -1:
-            daydata = hres[15: ]
+        if time.find("23:00") != -1 and len(hres) == datakind * 4:
+            daydata = hres[datakind * 3: ]
             res = [time.split(' ')[0]]
-            dayres = updatelist(daylist, daydata, 1)    
+            dayres = updatelist(daylist, daydata, 1, datakind)    
             csv_file3.writerow(res + dayres)
 
 def rewriteAqRawData(datalist, vallist, valcnt, city, stationid, gval, gcnt, a):
-    print stationid
+    print stationid 
     fn = "data/preprocessed/rawdata/aq_data/" + city + "/" + stationid + ".csv"
     if a:
         csv_file = open(fn, 'a')
@@ -190,9 +215,9 @@ def rewriteAqRawData(datalist, vallist, valcnt, city, stationid, gval, gcnt, a):
         for i in range(1, len(data)):
             if data[i] == "":
                 if valcnt[i - 1] == 0:
-                    data[i] = gval[i - 1] * 1.0 / gcnt[i - 1]
+                    data[i] = round(gval[i - 1] * 1.0 / gcnt[i - 1], 4)
                 else:
-                    data[i] = vallist[i - 1] * 1.0 / valcnt[i - 1]
+                    data[i] = round(vallist[i - 1] * 1.0 / valcnt[i - 1], 4)
         csv_writer.writerow(data)
     for i in range(len(vallist)):
         vallist[i] = 0
@@ -250,6 +275,12 @@ def genRawAqData(city, isforecast, a):
                 if line[i] != "":
                     valcnt[i - dataindex] = valcnt[i - dataindex] + 1
                     tmpval[i - dataindex] = tmpval[i - dataindex] + float(line[i])
+
+    if tmpstation != "":    
+        for i in range(len(tmpval)):
+            gval[i] = gval[i] + tmpval[i]
+            gcnt[i] = gcnt[i] + valcnt[i]
+        rewriteAqRawData(tmplist, tmpval, valcnt, city, tmpstation, gval, gcnt, a)
     
 if __name__ == "__main__":
     '''
@@ -261,8 +292,23 @@ if __name__ == "__main__":
     gridlist = getGridList("london")
     for grid in gridlist:
         genEnhancedParsing(grid[0])
-    '''
+    
     genRawAqData("beijing", True, False)
     genRawAqData("beijing", True, True)
     genRawAqData("london", False, False)
     genRawAqData("london", True, False)
+    
+    aqstation = getAqStation("beijing")
+    for station in aqstation:
+        print station[0]
+        genAqEnhancedParsing("beijing", station[0])
+
+    aqstation = getAqStation("london_predict")
+    for station in aqstation:
+        print station[0]
+        genAqEnhancedParsing("london", station[0])
+    '''
+    aqstation = getAqStation("london_others")
+    for station in aqstation:
+        print station[0]
+        genAqEnhancedParsing("london", station[0])
