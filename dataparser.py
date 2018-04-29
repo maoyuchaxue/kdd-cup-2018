@@ -29,14 +29,10 @@ def getGridList(city):
 
 def genMeoPrepocessed(city):
     gridlist = getGridList(city)
-    csvfilelist = []
-    writerlist = {}
 
+    data_dict = {};
     for grid in gridlist:
-        fn = "data/preprocessed/rawdata/" + grid[0] + ".csv"
-        csv_file = open(fn, 'w')
-        csvfilelist.append(csv_file)
-        writerlist[grid[0]] = csv.writer(csv_file)
+        data_dict[grid[0]] = []
 
     if city == "beijing":
         fn = "data/Beijing_historical_meo_grid.csv"
@@ -45,10 +41,15 @@ def genMeoPrepocessed(city):
 
     csv_file = csv.reader(open(fn, 'r'))
     isfirstline = True
+
+    cnt = 0
     for line in csv_file:
         if isfirstline:
             isfirstline = False
         else:
+            cnt += 1
+            if (cnt % 10000 == 0):
+                print cnt
             stationid = line[0]
             time = line[3]
             temperature = float(line[4])
@@ -57,10 +58,16 @@ def genMeoPrepocessed(city):
             winddirect = float(line[7])
             windspeed = float(line[8])
             tmpstate = [time, temperature, pressure, humidity, winddirect, windspeed]
-            writerlist[stationid].writerow(tmpstate)
+            data_dict[stationid].append(tmpstate)
+            # writerlist[stationid].writerow(tmpstate)
     
-    for csvfile in csvfilelist:
-        csvfile.close()
+    for grid in gridlist:
+        fn = "data/preprocessed/rawdata/" + grid[0] + ".csv"
+        csv_file = open(fn, 'w')  
+        writer = csv.writer(csv_file)
+        for row in data_dict[grid[0]]:        
+            writer.writerow(row)
+        csv_file.close()
 
 def calWind(windd1, windd2, winds1, winds2):
     if windd1 == 999017:
