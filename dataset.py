@@ -52,16 +52,18 @@ class Dataset:
         aq_csv_reader = csv.reader(aq_csv_file)
         self.aq_stations = [] # (station name, x, y)
         for l in aq_csv_reader:
-            self.aq_stations.append([l[0], float(l[1]), float(l[2])])
+            if (len(l) == 3):
+                self.aq_stations.append([l[0], float(l[1]), float(l[2])])
         aq_csv_file.close()
 
         meo_csv_file = open(self.meo_csv, "r")
         meo_csv_reader = csv.reader(meo_csv_file)
         self.meo_stations = [] # (station name, x, y)
         for l in meo_csv_reader:
-            self.meo_stations.append([l[0], float(l[1]), float(l[2])])
+            if (len(l) == 3):
+                self.meo_stations.append([l[0], float(l[1]), float(l[2])])
         meo_csv_file.close()
-
+        print(len(self.aq_stations), len(self.meo_stations))
 
     def load_data(self):
         time_set = None
@@ -76,8 +78,9 @@ class Dataset:
                 aq_file = open(aq_file_name, "r")
                 aq_reader = csv.reader(aq_file)
                 for l in aq_reader:
-                    cur_time = time_to_int(l[0])
-                    tmp_time_set.add(cur_time)
+                    if (len(l) >= 2):
+                        cur_time = time_to_int(l[0])
+                        tmp_time_set.add(cur_time)
 
                 aq_file.close()
                 time_set = tmp_time_set
@@ -118,13 +121,13 @@ class Dataset:
             self.meo_files.append(cur_meo_files)
 
         time_list = sorted(list(time_set))
-        jmp_list = []
-        for i in range(len(time_list)-1):
-            dif = time_list[i+1] - time_list[i]
-            if (dif != 1):
-                print(int_to_time(time_list[i]), int_to_time(time_list[i+1]))
-                jmp_list.append(dif-1)
-        print("total miss:", len(jmp_list), sum(jmp_list))
+        # jmp_list = []
+        # for i in range(len(time_list)-1):
+        #     dif = time_list[i+1] - time_list[i]
+        #     if (dif != 1):
+        #         print(int_to_time(time_list[i]), int_to_time(time_list[i+1]))
+        #         jmp_list.append(dif-1)
+        # print("total miss:", len(jmp_list), sum(jmp_list))
 
         self.n = len(time_list)
         self.ns = [int(self.n * ratio) for ratio in self.split_ratio[:-1]]
@@ -148,6 +151,7 @@ class Dataset:
             dist_mat.append(dist_row)
 
         self.dist_matrix = np.array(dist_mat)
+        self.dist_matrix /= self.dist_matrix.shape[1]
         print("dist matrix shape:", self.dist_matrix.shape)
         return self.dist_matrix
 
@@ -168,45 +172,43 @@ class Dataset:
             cur_aq_data_arr = []
             for reader_arr in self.aq_readers:
                 reader = reader_arr[t]
-                l = reader.next()
-                while (time_to_int(l[0]) != tim):
-                    l = reader.next()
-                cur_aq_data_arr.append([float(i) for i in l[1:]])
+                l = next(reader)
+                while (len(l) <= 2 or time_to_int(l[0]) != tim):
+                    l = next(reader)
+                cur_aq_data_arr.append([float(i) for i in l[1:7]])
 
             aq_data_arr.append(cur_aq_data_arr)
 
             cur_meo_data_arr = []
             for reader_arr in self.meo_readers:
                 reader = reader_arr[t]
-                l = reader.next()
-                while (time_to_int(l[0]) != tim):
-                    l = reader.next()
+                l = next(reader)
+                while (len(l) <= 2 or time_to_int(l[0]) != tim):
+                    l = next(reader)
                 cur_meo_data_arr.append([float(i) for i in l[1:]])
             meo_data_arr.append(cur_meo_data_arr)
 
-        if (end == self.ns[t]):
-            
+        if (end  + self.batch_size > self.ns[t]):
             # this epoch is finished. reopen all files and reset all readers.
-
             for f_arr in self.aq_files:
                 f_arr[t].close()
 
-            for aq_station_info in self.aq_stations:
-                aq_file_name = aq_station_info[0]
+            for stat_ind, aq_station_info in enumerate(self.aq_stations):
+                aq_file_name = os.path.join(self.aq_path, aq_station_info[0] + ".csv")
                 cur_aq_file = open(aq_file_name, "r")
-                cur_aq_reader = csv.reader(aq_file)
-                self.aq_readers[t] = cur_aq_reader
-                self.aq_files[t] = cur_aq_file
+                cur_aq_reader = csv.reader(cur_aq_file)
+                self.aq_readers[stat_ind][t] = cur_aq_reader
+                self.aq_files[stat_ind][t] = cur_aq_file
 
             for f_arr in self.meo_files:
                 f_arr[t].close()
             
-            for meo_station_info in self.meo_stations:
-                meo_file_name = meo_station_info[0]
+            for stat_ind, meo_station_info in enumerate(self.meo_stations):            
+                meo_file_name = os.path.join(self.meo_path, meo_station_info[0] + ".csv")
                 cur_meo_file = open(meo_file_name, "r")
-                cur_meo_reader = csv.reader(meo_file)
-                self.meo_readers[t] = cur_meo_reader
-                self.meo_files[t] = cur_meo_file
+                cur_meo_reader = csv.reader(cur_meo_file)
+                self.meo_readers[stat_ind][t] = cur_meo_reader
+                self.meo_files[stat_ind][t] = cur_meo_file
 
             self.data_ind[t] = 0
 
@@ -232,6 +234,7 @@ def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50
 
 if __name__ == "__main__":
     dataset = getDataset("beijing", "hourunit", batch_size=10)
+    dist_mat = dataset.get_dist_matrix()
     x,y = (dataset.get_next_batch())
     print(x.shape, y.shape)
 
