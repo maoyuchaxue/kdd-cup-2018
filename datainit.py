@@ -29,9 +29,9 @@ def initAqStation(city):
         for line in csv_file:
             if line[0] != "":
                 if line[2] != "":
-                    forecast.append([line[0], line[5], line[4]])
+                    forecast.append([line[0], line[5], line[4], line[6]])
                 else:
-                    others.append([line[0], line[5], line[4]])
+                    others.append([line[0], line[5], line[4], line[6]])
         return forecast, others
 
 

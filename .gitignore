@@ -1,2 +1,4 @@
 *.csv
 *.xlsx
+train
+__pycache__

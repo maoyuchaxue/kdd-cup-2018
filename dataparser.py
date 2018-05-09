@@ -297,6 +297,7 @@ if __name__ == "__main__":
     gridlist = getGridList("london")
     for grid in gridlist:
         genEnhancedParsing(grid[0])
+    '''
     
     genRawAqData("beijing", True, False)
     genRawAqData("beijing", True, True)
@@ -312,7 +313,6 @@ if __name__ == "__main__":
     for station in aqstation:
         print station[0]
         genAqEnhancedParsing("london", station[0])
-    '''
     aqstation = getAqStation("london_others")
     for station in aqstation:
         print station[0]
