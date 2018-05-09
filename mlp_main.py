@@ -11,6 +11,7 @@ import dataset
 import argparse
 import sys, os
 import math
+import utils
 
 parser = argparse.ArgumentParser(description="add arguments below:")
 parser.add_argument('--test', action="store_false")
@@ -41,7 +42,7 @@ tf.app.flags.DEFINE_string("data_dir", "", "data dir")
 tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.name, "training dir")
 tf.app.flags.DEFINE_integer("inference_version", arg.inf, "the version for inferencing")
 FLAGS = tf.app.flags.FLAGS
-data = dataset.getDataset("beijing", "dayunit", batch_size=FLAGS.batch_size)
+data = dataset.getDataset("beijing", "hourunit", batch_size=FLAGS.batch_size)
 
 
 with tf.Session() as sess:
@@ -49,6 +50,7 @@ with tf.Session() as sess:
         os.mkdir(FLAGS.train_dir)
     
     if FLAGS.is_train:
+        
         mlp_model = Model(True, batch_size=FLAGS.batch_size)
         if tf.train.get_checkpoint_state(FLAGS.train_dir):
             mlp_model.saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
@@ -57,6 +59,7 @@ with tf.Session() as sess:
 
         dist_mat = data.get_dist_matrix()
 
+        summary_writer = tf.summary.FileWriter('%s/log' % FLAGS.train_dir, sess.graph)
         for epoch in range(FLAGS.num_epochs):
             tot_train_losses = 0
             start_time = time.time()
@@ -70,6 +73,10 @@ with tf.Session() as sess:
                 cur_loss, _ = sess.run([mlp_model.loss, mlp_model.train_op], feed)
 
                 print("iter: {iter_num}, batch loss {loss}".format(iter_num=i, loss=cur_loss))
+
+                summary = tf.Summary()
+                summary.value.add(tag='loss/batch', simple_value=cur_loss)
+                summary_writer.add_summary(summary, epoch * iters + i)
 
                 tot_train_losses += cur_loss
             # train_loss = train_epoch(mlp_model, sess, X_train, y_train)  # Complete the training process
@@ -87,6 +94,10 @@ with tf.Session() as sess:
             print("Epoch " + str(epoch + 1) + " of " + str(FLAGS.num_epochs) + " took " + str(epoch_time) + "s")
             print("  learning rate:                 " + str(mlp_model.learning_rate.eval()))
             print("  training loss:                 " + str(train_loss))
+
+            summary = tf.Summary()
+            summary.value.add(tag='loss/dev', simple_value=train_loss)
+            summary_writer.add_summary(summary, epoch)
             # print("  validation loss:               " + str(val_loss))
             # print("  validation accuracy:           " + str(val_acc))
             # print("  best epoch:                    " + str(best_epoch))
@@ -106,11 +117,25 @@ with tf.Session() as sess:
                 start_time = time.time()
                 n_valid = data.ns[1]
                 iters = int(math.floor(n_valid * 1.0 / FLAGS.batch_size))
+
+                smapes = []
                 for i in range(iters):
                     y_batch, X_batch = data.get_next_batch("val")
                     print(X_batch.shape, y_batch.shape)
                     feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.keep_prob: FLAGS.keep_prob, mlp_model.dist_mat: dist_mat}
-                    cur_loss, = sess.run([mlp_model.loss], feed)
+                    y_pred, cur_loss = sess.run([mlp_model.pred, mlp_model.loss], feed)
                     tot_valid_losses += cur_loss
+                    smape = utils.SMAPE(y_batch, y_pred)
+                    smapes.append(smape)
                 val_loss = tot_valid_losses / iters
+                smape = sum(smapes) / len(smapes)
                 print("validation: loss = " + str(val_loss))
+                print("validation: smape = " + str(smape))
+
+                summary = tf.Summary()
+                summary.value.add(tag='loss/val', simple_value=val_loss)
+                summary.value.add(tag='smape/val', simple_value=smape)
+                summary_writer.add_summary(summary, epoch)
+
+                model.saver.save(sess, '%s/checkpoint' % FLAGS.train_dir, global_step=mlp_model.global_step)
+
