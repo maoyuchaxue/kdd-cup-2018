@@ -10,7 +10,7 @@ class Model:
                  batch_size=10,
                  learning_rate=0.01,
                  learning_rate_decay_factor=0.9,
-                 aq_features=6,
+                 aq_features=3,
                  meo_features=25,
                  dist_features=4):
         self.x_ = tf.placeholder(tf.float32, (batch_size, None, meo_features)) # n * meo_n * meo_d

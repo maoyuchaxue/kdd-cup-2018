@@ -32,7 +32,7 @@ def int_to_time(time_int):
 
 
 class Dataset:
-    def __init__(self, aq_path, aq_csv, meo_path, meo_csv, split_ratio=(0.8, 0.2), batch_size=50):
+    def __init__(self, aq_path, aq_csv, meo_path, meo_csv, city, split_ratio=(0.8, 0.2), batch_size=50):
         self.aq_path = aq_path
         self.aq_csv = aq_csv
         self.meo_path = meo_path
@@ -41,6 +41,26 @@ class Dataset:
         self.batch_size = batch_size
 
         self.data_ind = [0 for i in split_ratio]
+
+        if (city == "beijing"):
+            self.aq_dim = 3
+            self.aq_input_dims = 6
+            self.aq_features_in_file = [0, 1, 4]
+        else:
+            self.aq_dim = 2
+            self.aq_input_dims = 3
+            self.aq_features_in_file = [0, 1]
+        self.meo_dim = 5
+        self.time_steps = 5
+
+        self.aq_expanded_dims = self.aq_dim * (self.time_steps - 1)
+        self.meo_expanded_dims = self.meo_dim * self.time_steps
+
+        self.prev_aq_features_in_file = []
+        for i in range(1, self.time_steps):
+            self.prev_aq_features_in_file += [i*self.aq_input_dims + p for p in self.aq_features_in_file]
+
+        print(self.prev_aq_features_in_file)
 
         self.init_stations()
         self.load_data()
@@ -78,7 +98,7 @@ class Dataset:
                 aq_file = open(aq_file_name, "r")
                 aq_reader = csv.reader(aq_file)
                 for l in aq_reader:
-                    if (len(l) >= 2):
+                    if (len(l) == self.aq_input_dims * self.time_steps + 1):
                         cur_time = time_to_int(l[0])
                         tmp_time_set.add(cur_time)
 
@@ -104,7 +124,7 @@ class Dataset:
                 meo_file = open(meo_file_name, "r")
                 meo_reader = csv.reader(meo_file)
                 for l in meo_reader:
-                    if (len(l) != 26):
+                    if (len(l) != self.meo_expanded_dims + 1):
                         continue
                     cur_time = time_to_int(l[0])
                     tmp_time_set.add(cur_time)
@@ -137,6 +157,8 @@ class Dataset:
         self.data_times = [time_list[sum(self.ns[:i]):sum(self.ns[:(i+1)])] for i in range(len(self.split_ratio))]
 
     def get_dist_matrix(self):
+        self.dist_dims = 4
+
         dist_mat = []
         for aq_station_info in self.aq_stations:
             dist_row = []
@@ -168,16 +190,22 @@ class Dataset:
 
         aq_data_arr = []
         meo_data_arr = []
+        # prev_aq_data_arr = []
         for tim in time_slice:
             cur_aq_data_arr = []
+            # cur_prev_aq_data_arr = []
             for reader_arr in self.aq_readers:
                 reader = reader_arr[t]
                 l = next(reader)
-                while (len(l) <= 2 or time_to_int(l[0]) != tim):
+                while (len(l) <= self.aq_input_dims * self.time_steps or time_to_int(l[0]) != tim):
                     l = next(reader)
-                cur_aq_data_arr.append([float(i) for i in l[1:7]])
+                l = l[1:]
+                cur_aq_data_arr.append([float(l[i]) for i in self.aq_features_in_file])
+                # cur_prev_aq_data_arr.append([float(i) for i in l[self.prev_aq_features_in_file]])
+
 
             aq_data_arr.append(cur_aq_data_arr)
+            # prev_aq_data_arr.append(cur_prev_aq_data_arr)
 
             cur_meo_data_arr = []
             for reader_arr in self.meo_readers:
@@ -216,6 +244,7 @@ class Dataset:
             self.data_ind[t] = end
 
         return np.array(aq_data_arr), np.array(meo_data_arr)
+        # return np.array(aq_data_arr), np.array(prev_aq_data_arr), np.array(meo_data_arr)
         
 
 def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50):
@@ -228,14 +257,14 @@ def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50
         meo_csv_fn = "./data/Beijing_grid_weather_station.csv"
 
     return Dataset(path_format_str.format(city=city, time_type=time_type, data_type="aq"), aq_csv_fn, 
-            path_format_str.format(city=city, time_type=time_type, data_type="meo"), meo_csv_fn,
-            split_ratio, batch_size)
+            path_format_str.format(city=city, time_type=time_type, data_type="meo"), meo_csv_fn
+            , city, split_ratio, batch_size)
     
 
 if __name__ == "__main__":
     dataset = getDataset("beijing", "hourunit", batch_size=10)
     dist_mat = dataset.get_dist_matrix()
-    x,y = (dataset.get_next_batch())
+    x, y = (dataset.get_next_batch())
     print(x.shape, y.shape)
 
 

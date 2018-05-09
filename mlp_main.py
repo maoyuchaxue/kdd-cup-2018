@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.name, "training dir")
 tf.app.flags.DEFINE_integer("inference_version", arg.inf, "the version for inferencing")
 FLAGS = tf.app.flags.FLAGS
 data = dataset.getDataset("beijing", "hourunit", batch_size=FLAGS.batch_size)
-
+dist_mat = data.get_dist_matrix()
 
 with tf.Session() as sess:
     if not os.path.exists(FLAGS.train_dir):
@@ -51,13 +51,12 @@ with tf.Session() as sess:
     
     if FLAGS.is_train:
         
-        mlp_model = Model(True, batch_size=FLAGS.batch_size)
+        mlp_model = Model(True, batch_size=FLAGS.batch_size, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims)
         if tf.train.get_checkpoint_state(FLAGS.train_dir):
             mlp_model.saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
         else:
             tf.global_variables_initializer().run()
 
-        dist_mat = data.get_dist_matrix()
 
         summary_writer = tf.summary.FileWriter('%s/log' % FLAGS.train_dir, sess.graph)
         for epoch in range(FLAGS.num_epochs):
