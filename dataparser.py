@@ -93,7 +93,11 @@ def calWind(windd1, windd2, winds1, winds2):
 
 # temperature, pressure, humidity, wind_direction, wind_speed/kph
 def genListRes(data, l, datakind):
-    if len(data) >= l:
+    if l != 1 and datakind != 0:
+        offset = -1
+    else:
+        offset = 0
+    if len(data) + offset >= l:
         # meo data
         if datakind == 0:
             res = [0, 0, 0, 0, 0]
@@ -113,10 +117,6 @@ def genListRes(data, l, datakind):
             return res
         else:
             # aqdata
-            if l == 1:
-                offset = 0
-            else:
-                offset = -1
             res = []
             for i in range(datakind):
                 res.append(0)
