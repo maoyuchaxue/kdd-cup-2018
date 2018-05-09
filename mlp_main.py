@@ -16,7 +16,7 @@ import utils
 parser = argparse.ArgumentParser(description="add arguments below:")
 parser.add_argument('--test', action="store_false")
 parser.add_argument('--name', type=str, help="test name", default="default")
-parser.add_argument('--inf', type=int, help="inference version", default=2500)
+parser.add_argument('--inf', type=int, help="inference version", default=0)
 arg = parser.parse_args()
 
 
@@ -33,6 +33,10 @@ else:
     summary_file = open(summary, "a")
     
 
+tf.app.flags.DEFINE_string("current_test_date", "5-10", "current test date string")
+tf.app.flags.DEFINE_string("city_name", "beijing", "city name")
+tf.app.flags.DEFINE_string("time_step_name", "hourunit", "hourunit or dayunit")
+
 tf.app.flags.DEFINE_integer("batch_size", 20, "batch size for training")
 tf.app.flags.DEFINE_integer("num_epochs", 50, "number of epochs")
 tf.app.flags.DEFINE_integer("valid_epochs", 5, "interval of validate epochs")
@@ -42,7 +46,10 @@ tf.app.flags.DEFINE_string("data_dir", "", "data dir")
 tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.name, "training dir")
 tf.app.flags.DEFINE_integer("inference_version", arg.inf, "the version for inferencing")
 FLAGS = tf.app.flags.FLAGS
-data = dataset.getDataset("beijing", "hourunit", batch_size=FLAGS.batch_size)
+
+
+data = dataset.getDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=FLAGS.batch_size,
+     is_train=FLAGS.is_train, date=FLAGS.current_test_date)
 dist_mat = data.get_dist_matrix()
 
 with tf.Session() as sess:
@@ -67,7 +74,7 @@ with tf.Session() as sess:
             for i in range(iters):
                 y_batch, X_batch = data.get_next_batch("train")
                 print(X_batch.shape, y_batch.shape)
-                feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.keep_prob: FLAGS.keep_prob, mlp_model.dist_mat: dist_mat}
+                feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.dist_mat: dist_mat}
 
                 cur_loss, _ = sess.run([mlp_model.loss, mlp_model.train_op], feed)
 
@@ -121,7 +128,7 @@ with tf.Session() as sess:
                 for i in range(iters):
                     y_batch, X_batch = data.get_next_batch("val")
                     print(X_batch.shape, y_batch.shape)
-                    feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.keep_prob: FLAGS.keep_prob, mlp_model.dist_mat: dist_mat}
+                    feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.dist_mat: dist_mat}
                     y_pred, cur_loss = sess.run([mlp_model.pred, mlp_model.loss], feed)
                     tot_valid_losses += cur_loss
                     smape = utils.SMAPE(y_batch, y_pred)
@@ -138,3 +145,33 @@ with tf.Session() as sess:
 
                 model.saver.save(sess, '%s/checkpoint' % FLAGS.train_dir, global_step=mlp_model.global_step)
 
+    else:
+
+        mlp_model = Model(False, batch_size=FLAGS.batch_size, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims)
+
+        if FLAGS.inference_version == 0:
+            model_path = tf.train.latest_checkpoint(FLAGS.train_dir)
+        else:
+            model_path = '%s/checkpoint-%08d' % (FLAGS.train_dir, FLAGS.inference_version)
+
+        mlp_model.saver.restore(sess, model_path)
+        
+        n_train = data.ns[0]
+        iters = int(math.floor(n_train * 1.0 / FLAGS.batch_size))
+
+
+        out_file = open("./data/output/{test_date}-out.csv".format(test_date=FLAGS.current_test_date),"w")
+
+        y_empty = np.zeros((FLAGS.batch_size, len(data.aq_stations), data.aq_dim))
+        for i in range(iters):
+            X_batch = data.get_next_batch("train")
+            print(X_batch.shape)
+            feed = {mlp_model.x_: X_batch, mlp_model.y_: y_empty, mlp_model.dist_mat: dist_mat}
+
+            pred, = sess.run([mlp_model.pred], feed)
+        
+            for b in range(FLAGS.batch_size):
+                for aq_ind, aq_station_info in enumerate(data.aq_stations):
+                    pred_list = pred[b][aq_ind]
+                    out_file.write(aq_station_info[0] + "," + ",".join([str(p) for p in pred_list]) + "\n")
+        out_file.close()

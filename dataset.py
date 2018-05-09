@@ -32,14 +32,17 @@ def int_to_time(time_int):
 
 
 class Dataset:
-    def __init__(self, aq_path, aq_csv, meo_path, meo_csv, city, split_ratio=(0.8, 0.2), batch_size=50):
+    def __init__(self, aq_path, aq_csv, meo_path, meo_csv, city, split_ratio=(0.8, 0.2), batch_size=50, is_train=True):
         self.aq_path = aq_path
         self.aq_csv = aq_csv
         self.meo_path = meo_path
         self.meo_csv = meo_csv
-        self.split_ratio = split_ratio
+        self.is_train = is_train
+        if is_train:
+            self.split_ratio = split_ratio
+        else:
+            self.split_ratio = (1,)
         self.batch_size = batch_size
-
         self.data_ind = [0 for i in split_ratio]
 
         if (city == "beijing"):
@@ -50,6 +53,7 @@ class Dataset:
             self.aq_dim = 2
             self.aq_input_dims = 3
             self.aq_features_in_file = [0, 1]
+
         self.meo_dim = 5
         self.time_steps = 5
 
@@ -68,6 +72,7 @@ class Dataset:
         # print(self.aq_stations, self.meo_stations)
         
     def init_stations(self):
+        
         aq_csv_file = open(self.aq_csv, "r")
         aq_csv_reader = csv.reader(aq_csv_file)
         self.aq_stations = [] # (station name, x, y)
@@ -85,31 +90,34 @@ class Dataset:
         meo_csv_file.close()
         print(len(self.aq_stations), len(self.meo_stations))
 
+
     def load_data(self):
         time_set = None
-        self.aq_readers = []
-        self.aq_files = []
-        for aq_station_info in self.aq_stations:
-            tmp_time_set = set()
-            aq_station_data = {}
-            aq_file_name = os.path.join(self.aq_path, aq_station_info[0] + ".csv")
+        
+        if (self.is_train):
+            self.aq_readers = []
+            self.aq_files = []
+            for aq_station_info in self.aq_stations:
+                tmp_time_set = set()
+                aq_station_data = {}
+                aq_file_name = os.path.join(self.aq_path, aq_station_info[0] + ".csv")
 
-            if (len(self.aq_readers) == 0):
-                aq_file = open(aq_file_name, "r")
-                aq_reader = csv.reader(aq_file)
-                for l in aq_reader:
-                    if (len(l) == self.aq_input_dims * self.time_steps + 1):
-                        cur_time = time_to_int(l[0])
-                        tmp_time_set.add(cur_time)
+                if (len(self.aq_readers) == 0):
+                    aq_file = open(aq_file_name, "r")
+                    aq_reader = csv.reader(aq_file)
+                    for l in aq_reader:
+                        if (len(l) == self.aq_input_dims * self.time_steps + 1):
+                            cur_time = time_to_int(l[0])
+                            tmp_time_set.add(cur_time)
 
-                aq_file.close()
-                time_set = tmp_time_set
+                    aq_file.close()
+                    time_set = tmp_time_set
 
-            cur_aq_files = [open(aq_file_name, "r") for i in range(len(self.split_ratio))]
-            cur_aq_readers = [csv.reader(aq_file) for aq_file in cur_aq_files]
-            self.aq_readers.append(cur_aq_readers)
-            self.aq_files.append(cur_aq_files)
-            print(aq_station_info[0])
+                cur_aq_files = [open(aq_file_name, "r") for i in range(len(self.split_ratio))]
+                cur_aq_readers = [csv.reader(aq_file) for aq_file in cur_aq_files]
+                self.aq_readers.append(cur_aq_readers)
+                self.aq_files.append(cur_aq_files)
+                print(aq_station_info[0])
 
             # break
 
@@ -192,19 +200,21 @@ class Dataset:
         meo_data_arr = []
         # prev_aq_data_arr = []
         for tim in time_slice:
-            cur_aq_data_arr = []
-            # cur_prev_aq_data_arr = []
-            for reader_arr in self.aq_readers:
-                reader = reader_arr[t]
-                l = next(reader)
-                while (len(l) <= self.aq_input_dims * self.time_steps or time_to_int(l[0]) != tim):
+            
+            if (self.is_train):
+                cur_aq_data_arr = []
+                # cur_prev_aq_data_arr = []
+                for reader_arr in self.aq_readers:
+                    reader = reader_arr[t]
                     l = next(reader)
-                l = l[1:]
-                cur_aq_data_arr.append([float(l[i]) for i in self.aq_features_in_file])
-                # cur_prev_aq_data_arr.append([float(i) for i in l[self.prev_aq_features_in_file]])
+                    while (len(l) <= self.aq_input_dims * self.time_steps or time_to_int(l[0]) != tim):
+                        l = next(reader)
+                    l = l[1:]
+                    cur_aq_data_arr.append([float(l[i]) for i in self.aq_features_in_file])
+                    # cur_prev_aq_data_arr.append([float(i) for i in l[self.prev_aq_features_in_file]])
 
 
-            aq_data_arr.append(cur_aq_data_arr)
+                aq_data_arr.append(cur_aq_data_arr)
             # prev_aq_data_arr.append(cur_prev_aq_data_arr)
 
             cur_meo_data_arr = []
@@ -218,15 +228,18 @@ class Dataset:
 
         if (end  + self.batch_size > self.ns[t]):
             # this epoch is finished. reopen all files and reset all readers.
-            for f_arr in self.aq_files:
-                f_arr[t].close()
 
-            for stat_ind, aq_station_info in enumerate(self.aq_stations):
-                aq_file_name = os.path.join(self.aq_path, aq_station_info[0] + ".csv")
-                cur_aq_file = open(aq_file_name, "r")
-                cur_aq_reader = csv.reader(cur_aq_file)
-                self.aq_readers[stat_ind][t] = cur_aq_reader
-                self.aq_files[stat_ind][t] = cur_aq_file
+            
+            if (self.is_train):
+                for f_arr in self.aq_files:
+                    f_arr[t].close()
+
+                for stat_ind, aq_station_info in enumerate(self.aq_stations):
+                    aq_file_name = os.path.join(self.aq_path, aq_station_info[0] + ".csv")
+                    cur_aq_file = open(aq_file_name, "r")
+                    cur_aq_reader = csv.reader(cur_aq_file)
+                    self.aq_readers[stat_ind][t] = cur_aq_reader
+                    self.aq_files[stat_ind][t] = cur_aq_file
 
             for f_arr in self.meo_files:
                 f_arr[t].close()
@@ -243,14 +256,22 @@ class Dataset:
         else:
             self.data_ind[t] = end
 
-        return np.array(aq_data_arr), np.array(meo_data_arr)
+        
+        if (self.is_train):
+            return np.array(aq_data_arr), np.array(meo_data_arr)
+        else:
+            return np.array(meo_data_arr)
         # return np.array(aq_data_arr), np.array(prev_aq_data_arr), np.array(meo_data_arr)
         
 
-def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50):
-    path_format_str = "./data/preprocessed/{time_type}/{data_type}_data/{city}"
-    aq_csv_fn = "./data/preprocessed/{city}_aqstation.csv".format(city=city)
+def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50, is_train=True, date=""):
+    
+    if (is_train):
+        path_format_str = "./data/preprocessed/{time_type}/{data_type}_data/{city}"
+    else:
+        path_format_str = "./data/" + date + "/preprocessed/{time_type}/{data_type}_data/{city}"
 
+    aq_csv_fn = "./data/preprocessed/{city}_aqstation.csv".format(city=city)
     if (city == "london_others" or city == "london_predict"):
         meo_csv_fn = "./data/London_grid_weather_station.csv"
     else:
@@ -258,14 +279,14 @@ def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50
 
     return Dataset(path_format_str.format(city=city, time_type=time_type, data_type="aq"), aq_csv_fn, 
             path_format_str.format(city=city, time_type=time_type, data_type="meo"), meo_csv_fn
-            , city, split_ratio, batch_size)
+            , city, split_ratio, batch_size, is_train)
     
 
 if __name__ == "__main__":
-    dataset = getDataset("beijing", "hourunit", batch_size=10)
+    dataset = getDataset("beijing", "hourunit", batch_size=10, is_train=True)
     dist_mat = dataset.get_dist_matrix()
-    x, y = (dataset.get_next_batch())
-    print(x.shape, y.shape)
+    x,y = (dataset.get_next_batch())
+    print(x.shape,y.shape)
 
 
 

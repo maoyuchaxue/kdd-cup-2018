@@ -12,11 +12,12 @@ class Model:
                  learning_rate_decay_factor=0.9,
                  aq_features=3,
                  meo_features=25,
-                 dist_features=4):
+                 dist_features=4,
+                 keep_prob=0.7):
         self.x_ = tf.placeholder(tf.float32, (batch_size, None, meo_features)) # n * meo_n * meo_d
         self.y_ = tf.placeholder(tf.float32, (batch_size, None, aq_features)) # n * aq_n * aq_d
         self.dist_mat = tf.placeholder(tf.float32, (None, None, dist_features)) # aq_n * meo_n * d
-        self.keep_prob = tf.placeholder(tf.float32)
+        self.keep_prob = keep_prob
         
         self.x_lin1 = tf.reshape(self.x_, [-1, meo_features])
 
@@ -24,7 +25,7 @@ class Model:
                 kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=None)
         bn1 = tf.layers.batch_normalization(lin1, training=is_train)
         relu1 = tf.nn.relu(bn1)
-        relu1_drop = tf.nn.dropout(relu1, self.keep_prob)
+        relu1_drop = tf.layers.dropout(relu1, 1 - self.keep_prob, training=is_train)
 
         lin2 = tf.layers.dense(relu1_drop, dist_features * 20, use_bias=False,
                 kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=None)
