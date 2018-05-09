@@ -74,6 +74,7 @@ def calWind(windd1, windd2, winds1, winds2):
         return windd2, winds1 + winds2
     if windd2 == 999017:
         return windd1, winds1 + winds2
+
     windx1 = winds1 * 1.0 * math.cos(windd1 / 180.0 * math.pi)
     windy1 = winds1 * 1.0 * math.sin(windd1 / 180.0 * math.pi)
     windx2 = winds2 * 1.0 * math.cos(windd2 / 180.0 * math.pi)
@@ -92,7 +93,11 @@ def calWind(windd1, windd2, winds1, winds2):
 
 # temperature, pressure, humidity, wind_direction, wind_speed/kph
 def genListRes(data, l, datakind):
-    if len(data) >= l:
+    if l != 1 and datakind != 0:
+        offset = -1
+    else:
+        offset = 0
+    if len(data) + offset >= l:
         # meo data
         if datakind == 0:
             res = [0, 0, 0, 0, 0]
@@ -116,7 +121,7 @@ def genListRes(data, l, datakind):
             for i in range(datakind):
                 res.append(0)
             for datatype in range(datakind):
-                for index in range(len(data) - l, len(data)):
+                for index in range(len(data) - l + offset, len(data) + offset):
                     res[datatype] = res[datatype] + float(data[index][datatype])
                 res[datatype] = res[datatype] * 1.0 / l
             for i in range(len(res)):
@@ -133,7 +138,7 @@ def updatelist(datalist, newdata, timetype, datatype):
         timelist = [3, 6, 12, 24]
     else:
         timelist = [1, 3, 7, 14, 30]
-    if len(datalist) > timelist[-1]:
+    if len(datalist) > timelist[-1] + 1:
         datalist.pop(0)
     for time in timelist:
         tmpres = genListRes(datalist, time, datatype)
