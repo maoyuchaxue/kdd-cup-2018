@@ -74,6 +74,7 @@ def calWind(windd1, windd2, winds1, winds2):
         return windd2, winds1 + winds2
     if windd2 == 999017:
         return windd1, winds1 + winds2
+    
     windx1 = winds1 * 1.0 * math.cos(windd1 / 180.0 * math.pi)
     windy1 = winds1 * 1.0 * math.sin(windd1 / 180.0 * math.pi)
     windx2 = winds2 * 1.0 * math.cos(windd2 / 180.0 * math.pi)
