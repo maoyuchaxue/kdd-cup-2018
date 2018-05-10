@@ -89,6 +89,8 @@ def calWind(windd1, windd2, winds1, winds2):
         windd = 999017
     else:
         windd = math.atan(windy * 1.0 / windx) / math.pi * 180
+        if windd < 0:
+            windd = windd + 360
     return windd, winds
 
 # temperature, pressure, humidity, wind_direction, wind_speed/kph
@@ -298,7 +300,7 @@ if __name__ == "__main__":
     for grid in gridlist:
         genEnhancedParsing(grid[0])
     '''
-    
+    '''
     genRawAqData("beijing", True, False)
     genRawAqData("beijing", True, True)
     genRawAqData("london", False, False)
@@ -317,3 +319,4 @@ if __name__ == "__main__":
     for station in aqstation:
         print station[0]
         genAqEnhancedParsing("london", station[0])
+    '''
