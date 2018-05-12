@@ -3,7 +3,7 @@ import csv
 from dataparser import calWind, updatelist
 from dataparser import genListRes
 import os
-
+import sys
 
 urlprefix = "https://biendata.com/competition/meteorology/"
 urlprefix2 = "http://kdd.caiyunapp.com/competition/forecast/"
@@ -111,7 +111,8 @@ def genGetRawDate(date):
     return startdate, enddate
 
 if __name__ == "__main__":
-    today = "2018-05-02"
+    today = sys.argv[1]
+    # print(today)
 
     tomorrow = genNextDay(today)
     day_after_tomorrow = genNextDay(tomorrow)
@@ -120,3 +121,7 @@ if __name__ == "__main__":
     getRawPrevData("london", startdate, enddate)
     getForeData("london", enddate)
     parseData("london", today, tomorrow, day_after_tomorrow)
+
+    getRawPrevData("beijing", startdate, enddate)
+    getForeData("beijing", enddate)
+    parseData("beijing", today, tomorrow, day_after_tomorrow)
