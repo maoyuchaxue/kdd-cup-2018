@@ -111,7 +111,7 @@ def genGetRawDate(date):
     return startdate, enddate
 
 if __name__ == "__main__":
-    today = "2018-05-02"
+    today = "2018-04-02"
 
     tomorrow = genNextDay(today)
     day_after_tomorrow = genNextDay(tomorrow)

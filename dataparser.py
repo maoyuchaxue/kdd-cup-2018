@@ -62,7 +62,7 @@ def genMeoPrepocessed(city):
             # writerlist[stationid].writerow(tmpstate)
     
     for grid in gridlist:
-        fn = "data/preprocessed/rawdata/" + city + "/" + grid[0] + ".csv"
+        fn = "data/preprocessed/rawdata/meo_data/" + city + "/" + grid[0] + ".csv"
         csv_file = open(fn, 'w')  
         writer = csv.writer(csv_file)
         for row in data_dict[grid[0]]:        
@@ -290,16 +290,18 @@ def genRawAqData(city, isforecast, a):
         rewriteAqRawData(tmplist, tmpval, valcnt, city, tmpstation, gval, gcnt, a)
     
 if __name__ == "__main__":
-    '''
-    genMeoPrepocessed("beijing")
-    genMeoPrepocessed("london")
+    
+    # genMeoPrepocessed("beijing")
+    # genMeoPrepocessed("london")
     gridlist = getGridList("beijing")
     for grid in gridlist:
-        genEnhancedParsing(grid[0])
+        print(grid[0])
+        genEnhancedParsing("beijing", grid[0])
     gridlist = getGridList("london")
     for grid in gridlist:
-        genEnhancedParsing(grid[0])
-    '''
+        print(grid[0])
+        genEnhancedParsing("london", grid[0])
+    
     '''
     genRawAqData("beijing", True, False)
     genRawAqData("beijing", True, True)

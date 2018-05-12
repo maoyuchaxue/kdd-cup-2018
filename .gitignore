@@ -2,3 +2,4 @@
 *.xlsx
 train
 __pycache__
+*.pyc

@@ -7,16 +7,17 @@ LAMBDA = 1e-5
 class Model:
     def __init__(self,
                  is_train,
-                 batch_size=10,
+                 aq_stations=10,
+                 meo_stations=10,
                  learning_rate=0.01,
                  learning_rate_decay_factor=0.9,
                  aq_features=3,
                  meo_features=25,
                  dist_features=4,
                  keep_prob=0.7):
-        self.x_ = tf.placeholder(tf.float32, (batch_size, None, meo_features)) # n * meo_n * meo_d
-        self.y_ = tf.placeholder(tf.float32, (batch_size, None, aq_features)) # n * aq_n * aq_d
-        self.dist_mat = tf.placeholder(tf.float32, (None, None, dist_features)) # aq_n * meo_n * d
+        self.x_ = tf.placeholder(tf.float32, (None, meo_stations, meo_features)) # n * meo_n * meo_d
+        self.y_ = tf.placeholder(tf.float32, (None, aq_stations, aq_features)) # n * aq_n * aq_d
+        self.dist_mat = tf.placeholder(tf.float32, (aq_stations, meo_stations, dist_features)) # aq_n * meo_n * d
         self.keep_prob = keep_prob
         
         self.x_lin1 = tf.reshape(self.x_, [-1, meo_features])
@@ -32,15 +33,15 @@ class Model:
         bn2 = tf.layers.batch_normalization(lin2, training=is_train)
         relu2 = tf.nn.relu(bn2)
 
-        relu2 = tf.reshape(relu2, [batch_size, -1, dist_features, 20])
+        relu2 = tf.reshape(relu2, [-1, meo_stations, dist_features, 20])
         relu2 = tf.transpose(relu2, (0, 3, 1, 2)) # n * 20 * meo_n * d
-        relu2 = tf.reshape(relu2, [batch_size * 20, -1])
+        relu2 = tf.reshape(relu2, [-1, meo_stations * dist_features])
 
         dist_m = tf.transpose(self.dist_mat, (1, 2, 0))
         dist_m = tf.reshape(dist_m, (-1, tf.shape(dist_m)[2]))
 
         lin3 = tf.matmul(relu2, dist_m) # 20n * aq_n
-        lin3 = tf.reshape(lin3, (batch_size, 20, -1))
+        lin3 = tf.reshape(lin3, (-1, 20, aq_stations))
         lin3 = tf.transpose(lin3, (0, 2, 1))
 
         lin4 = tf.layers.dense(lin3, 40, use_bias=True,
