@@ -5,10 +5,13 @@ import datetime
 
 eps = 1e-4
 
-def SMAPE(actual, pred):
-    p = pred
-    p[pred < 0] = 0
-    return np.mean(np.abs(actual - p) / ((actual + p + eps) / 2.0))
+def SMAPE(actual, predicted):
+    # p = pred
+    # p[pred < 0] = 0
+    # return np.mean(np.abs(actual - p) / ((actual + p + eps) / 2.0))
+    dividend= np.abs(np.array(actual) - np.array(predicted))
+    denominator = np.array(actual) + np.array(predicted)
+    return 2 * np.mean(np.divide(dividend, denominator, out=np.zeros_like(dividend), where=denominator!=0, casting='unsafe'))
 
 
 def time_to_int(time_str):

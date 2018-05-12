@@ -59,7 +59,7 @@ for l in ra:
     if ((not min_t) or t < min_t):
         min_t = t
     time_offset = (t - min_t)
-    print(time_offset)
+    # print(time_offset)
     cur_data = [float(l[i+3]) for i in aq_cols]
 
     real_data.append(cur_data)
