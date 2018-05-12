@@ -5,12 +5,12 @@ import math
 import utils
 import csv
 
-date = "2018-05-02"
+date = "2018-05-13"
 
-beijing_test_name = "default"
+beijing_test_name = "testout"
 beijing_inf = 0
 
-london_test_name = "default"
+london_test_name = "testout"
 london_inf = 0
 
 os.system("python3 ./pred_dataset.py --test --city beijing --inf {inf} --name {name} --date {date}".format(
@@ -19,11 +19,11 @@ os.system("python3 ./pred_dataset.py --test --city beijing --inf {inf} --name {n
 os.system("python3 ./pred_dataset.py --test --city london --inf {inf} --name {name} --date {date}".format(
     inf=london_inf, name=london_test_name, date=date))
 
-output_filename_beijing = "./data/output/beijing-{test_date}-{test_name}.out.csv".format(test_date=FLAGS.current_test_date, test_name=beijing_test_name)
+output_filename_beijing = "./data/output/beijing-{test_date}-{test_name}.out.csv".format(test_date=date, test_name=beijing_test_name)
 
-output_filename_london = "./data/output/london-{test_date}-{test_name}.out.csv".format(test_date=FLAGS.current_test_date, test_name=london_test_name)
+output_filename_london = "./data/output/london-{test_date}-{test_name}.out.csv".format(test_date=date, test_name=london_test_name)
 
-output_filename_merged = "./data/output/{test_date}_merged.out.csv"
+output_filename_merged = "./data/output/{test_date}_merged.out.csv".format(test_date=date)
 
 station_dict = {}
 station_list = []

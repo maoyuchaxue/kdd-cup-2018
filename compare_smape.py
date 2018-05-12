@@ -2,8 +2,14 @@ import csv
 import utils
 import numpy as np
 
-fn_pred = "./data/output/beijing-2018-05-02-testout.out.csv"
-fn_actual = "./data/output/05-02-beijing-actual.csv"
+fn_pred = "./data/output/london-2018-05-02-testout.out.csv"
+fn_actual = "./data/output/05-02-london-actual.csv"
+city = "ld"
+
+if (city == "bj"):
+    aq_cols = [0, 1, 4]
+else:
+    aq_cols = [0, 1]
 
 fpred = open(fn_pred, "r")
 rp = csv.reader(fpred)
@@ -35,10 +41,16 @@ for l in ra:
         continue
 
     complete = True
-    for z in l:
-        if (len(z) == 0):
-            complete = False
-            break
+    if (city == "bj"):
+        for z in l:
+            if (len(z) == 0):
+                complete = False
+                break
+    else:
+        for z in l[:-3]:
+            if (len(z) == 0):
+                complete = False
+                break
     if (not complete):
         continue
 
@@ -48,7 +60,7 @@ for l in ra:
         min_t = t
     time_offset = (t - min_t)
     print(time_offset)
-    cur_data = [float(l[i+3]) for i in [0,1,4]]
+    cur_data = [float(l[i+3]) for i in aq_cols]
 
     real_data.append(cur_data)
     pred_data.append(station_dict[station_name][time_offset])

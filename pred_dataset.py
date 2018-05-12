@@ -39,7 +39,7 @@ class PredDataset:
         aq_csv_reader = csv.reader(aq_csv_file)
         self.aq_stations = [] # (station name, x, y)
         for l in aq_csv_reader:
-            if (len(l) == 3):
+            if (len(l) >= 3):
                 self.aq_stations.append([l[0], float(l[1]), float(l[2])])
         aq_csv_file.close()
 

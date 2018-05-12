@@ -111,12 +111,12 @@ def genGetRawDate(date):
     return startdate, enddate
 
 if __name__ == "__main__":
-    today = "2018-04-02"
+    today = "2018-05-02"
 
     tomorrow = genNextDay(today)
     day_after_tomorrow = genNextDay(tomorrow)
     startdate, enddate = genGetRawDate(today)
 
-    getRawPrevData("beijing", startdate, enddate)
-    getForeData("beijing", enddate)
-    parseData("beijing", today, tomorrow, day_after_tomorrow)
+    getRawPrevData("london", startdate, enddate)
+    getForeData("london", enddate)
+    parseData("london", today, tomorrow, day_after_tomorrow)
