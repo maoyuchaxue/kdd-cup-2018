@@ -106,7 +106,12 @@ def genListRes(data, l, datakind):
             # temperature, pressure and humidity
             for datatype in range(3):
                 for index in range(len(data) - l, len(data)):
-                    res[datatype] = res[datatype] + float(data[index][datatype])
+                    try:
+                        res[datatype] = res[datatype] + float(data[index][datatype])
+                    except IndexError:
+                        print data
+                        print data[index]
+                        print index, datatype
                 res[datatype] = res[datatype] * 1.0 / l
             
             # wind_direction and wind_speed
