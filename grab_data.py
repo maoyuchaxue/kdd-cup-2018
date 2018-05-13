@@ -48,7 +48,7 @@ def getForeData(city, date):
         ct = "bj"
     else:
         ct = "ld"
-    url = urlprefix2 + ct + "/" + date + "-00/2k0d1d8"
+    url = urlprefix2 + ct + "/" + date + "-23/2k0d1d8"
 
     save_path = "./data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
     save_fn = os.path.join(save_path, "forecast.csv")

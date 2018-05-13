@@ -13,10 +13,10 @@ beijing_inf = 0
 london_test_name = "testout"
 london_inf = 0
 
-os.system("python3 ./pred_dataset.py --test --city beijing --inf {inf} --name {name} --date {date}".format(
+os.system("python3 ./mlp_main.py --test --city beijing --inf {inf} --name {name} --date {date}".format(
     inf=beijing_inf, name=beijing_test_name, date=date))
 
-os.system("python3 ./pred_dataset.py --test --city london --inf {inf} --name {name} --date {date}".format(
+os.system("python3 ./mlp_main.py --test --city london --inf {inf} --name {name} --date {date}".format(
     inf=london_inf, name=london_test_name, date=date))
 
 output_filename_beijing = "./data/output/beijing-{test_date}-{test_name}.out.csv".format(test_date=date, test_name=beijing_test_name)
