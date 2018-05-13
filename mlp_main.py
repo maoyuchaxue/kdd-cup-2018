@@ -39,9 +39,9 @@ tf.app.flags.DEFINE_string("current_test_date", arg.date, "current test date str
 tf.app.flags.DEFINE_string("city_name", arg.city, "city name")
 tf.app.flags.DEFINE_string("time_step_name", "hourunit", "hourunit or dayunit")
 
-tf.app.flags.DEFINE_integer("batch_size", 20, "batch size for training")
+tf.app.flags.DEFINE_integer("batch_size", 32, "batch size for training")
 tf.app.flags.DEFINE_integer("num_epochs", 50, "number of epochs")
-tf.app.flags.DEFINE_integer("valid_epochs", 5, "interval of validate epochs")
+tf.app.flags.DEFINE_integer("valid_epochs", 3, "interval of validate epochs")
 tf.app.flags.DEFINE_float("keep_prob", 0.7, "drop out rate")
 tf.app.flags.DEFINE_boolean("is_train", arg.test, "False to inference")
 tf.app.flags.DEFINE_string("data_dir", "", "data dir")

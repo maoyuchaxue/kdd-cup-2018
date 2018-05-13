@@ -156,7 +156,7 @@ def parseData(city, raw_dates, date, day1, day2):
                     daydata = hres[15: ]
                     lastday = daydata
                 res = [time.split(' ')[0]]
-                print(daydata)
+                # print(daydata)
                 dayres = updatelist(daylist[gridid], daydata, 1, 0)    
                 if tmpday == day1 or tmpday == day2:
                     csv_file3.writerow(res + dayres)

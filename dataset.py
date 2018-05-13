@@ -140,23 +140,7 @@ class Dataset:
         self.data_times = [time_list[sum(self.ns[:i]):sum(self.ns[:(i+1)])] for i in range(len(self.split_ratio))]
 
     def get_dist_matrix(self):
-        self.dist_dims = 4
-
-        dist_mat = []
-        for aq_station_info in self.aq_stations:
-            dist_row = []
-            aq_x = aq_station_info[1]
-            aq_y = aq_station_info[2]
-
-            for meo_station_info in self.meo_stations:
-                meo_x = meo_station_info[1]
-                meo_y = meo_station_info[2]
-                dist = math.sqrt((meo_x-aq_x)**2 + (meo_y-aq_y)**2)
-                dist_row.append([dist, 1.0, 1.0/dist, 1.0/(dist*2)])
-            dist_mat.append(dist_row)
-
-        self.dist_matrix = np.array(dist_mat)
-        self.dist_matrix /= self.dist_matrix.shape[1]
+        self.dist_dims, self.dist_matrix = utils.gen_dist_matrix(self.aq_stations, self.meo_stations)
         print("dist matrix shape:", self.dist_matrix.shape)
         return self.dist_matrix
 

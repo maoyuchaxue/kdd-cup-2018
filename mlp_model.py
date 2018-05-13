@@ -9,7 +9,7 @@ class Model:
                  is_train,
                  aq_stations=10,
                  meo_stations=10,
-                 learning_rate=0.01,
+                 learning_rate=0.005,
                  learning_rate_decay_factor=0.9,
                  aq_features=3,
                  meo_features=25,
@@ -22,32 +22,36 @@ class Model:
         
         self.x_lin1 = tf.reshape(self.x_, [-1, meo_features])
 
-        lin1 = tf.layers.dense(self.x_lin1, 50, use_bias=False,
+        lin1 = tf.layers.dense(self.x_lin1, 128, use_bias=False,
                 kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=None)
         bn1 = tf.layers.batch_normalization(lin1, training=is_train)
         relu1 = tf.nn.relu(bn1)
         relu1_drop = tf.layers.dropout(relu1, 1 - self.keep_prob, training=is_train)
 
-        lin2 = tf.layers.dense(relu1_drop, dist_features * 20, use_bias=False,
+        lin2 = tf.layers.dense(relu1_drop, dist_features * 128, use_bias=False,
                 kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=None)
         bn2 = tf.layers.batch_normalization(lin2, training=is_train)
         relu2 = tf.nn.relu(bn2)
 
-        relu2 = tf.reshape(relu2, [-1, meo_stations, dist_features, 20])
-        relu2 = tf.transpose(relu2, (0, 3, 1, 2)) # n * 20 * meo_n * d
+        relu2 = tf.reshape(relu2, [-1, meo_stations, dist_features, 128])
+        relu2 = tf.transpose(relu2, (0, 3, 1, 2)) # n * 128 * meo_n * d
         relu2 = tf.reshape(relu2, [-1, meo_stations * dist_features])
 
         dist_m = tf.transpose(self.dist_mat, (1, 2, 0))
         dist_m = tf.reshape(dist_m, (-1, tf.shape(dist_m)[2]))
 
-        lin3 = tf.matmul(relu2, dist_m) # 20n * aq_n
-        lin3 = tf.reshape(lin3, (-1, 20, aq_stations))
+        lin3 = tf.matmul(relu2, dist_m) # 128n * aq_n
+        lin3 = tf.reshape(lin3, (-1, 128, aq_stations))
         lin3 = tf.transpose(lin3, (0, 2, 1))
 
-        lin4 = tf.layers.dense(lin3, 40, use_bias=True,
-                kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=tf.nn.relu)
+        lin4 = tf.layers.dense(lin3, 128, use_bias=True,
+                kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=None)
+
+        bn4 = tf.layers.batch_normalization(lin4, training=is_train)
+        relu4 = tf.nn.relu(bn4)
+        relu4_drop = tf.layers.dropout(relu4, 1 - self.keep_prob, training=is_train)
         
-        lin5 = tf.layers.dense(lin4, aq_features, use_bias=True,
+        lin5 = tf.layers.dense(relu4_drop, aq_features, use_bias=True,
                 kernel_regularizer=tf.contrib.layers.l2_regularizer(LAMBDA), activation=None)
         
         self.pred = lin5
@@ -62,7 +66,7 @@ class Model:
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step,var_list=self.params)  # Use Adam Optimizer
+            self.train_op = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(self.loss, global_step=self.global_step,var_list=self.params)  # Use Adam Optimizer
 
         self.saver = tf.train.Saver(tf.global_variables(), write_version=tf.train.SaverDef.V2,
                                     max_to_keep=3, pad_step_number=True, keep_checkpoint_every_n_hours=1.0)
