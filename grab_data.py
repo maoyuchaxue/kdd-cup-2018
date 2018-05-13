@@ -5,9 +5,11 @@ from dataparser import genListRes
 import os
 import sys
 import utils
+from sklearn import preprocessing
 
 urlprefix = "https://biendata.com/competition/meteorology/"
 urlprefix2 = "http://kdd.caiyunapp.com/competition/forecast/"
+url_aq_format = "https://biendata.com/competition/airquality/{city_short}/{date}-0/{date}-23/2k0d1d8"
 
 global lastday
 global lasthr
@@ -17,6 +19,42 @@ lastday = []
 # tmpstate = [time, temperature, pressure, humidity, winddirect, windspeed]
 
 should_redownload = False;
+
+def getAQData(city, date):
+    if city == "beijing":
+        city_short = "bj"
+    else:
+        city_short = "ld"
+    url = url_aq_format.format(city_short=city_short, date=date)
+    print(url)
+
+    save_path = "./data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
+    save_fn = os.path.join(save_path, "aq.csv")
+
+    if (not os.path.exists(save_path)):
+        os.mkdir(save_path)
+    if (os.path.exists(save_fn) and os.path.getsize(save_fn) > 100):
+        print("existed")
+        if (not should_redownload):
+            return
+
+    f = urllib2.urlopen(url)
+    lastline = []
+    with open(save_fn, "w") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        content = f.read().split("\r\n")
+        isFirst = True
+        for line in content:
+            if line == "":
+                break
+            if isFirst:
+                isFirst = False
+                continue
+
+            tmpline = line.split(",")
+            csv_writer.writerow(tmpline[1:])
+    
+    
 
 def getRawPrevData(city, date):
     if city == "beijing":
@@ -184,14 +222,20 @@ if __name__ == "__main__":
     day_after_tomorrow = genNextDay(tomorrow)
     raw_dates = genRawDates(today)
 
-    for d in raw_dates:
-        getRawPrevData("london", d)
+    # for d in raw_dates:
+    #     getRawPrevData("london", d)
 
-    getForeData("london", today)
-    parseData("london", raw_dates, today, tomorrow, day_after_tomorrow)
+    # getForeData("london", today)
+    # parseData("london", raw_dates, today, tomorrow, day_after_tomorrow)
 
-    for d in raw_dates:
-        getRawPrevData("beijing", d)
+    # for d in raw_dates:
+    #     getRawPrevData("beijing", d)
 
-    getForeData("beijing", today)
-    parseData("beijing", raw_dates, today, tomorrow, day_after_tomorrow)
+    # getForeData("beijing", today)
+    # parseData("beijing", raw_dates, today, tomorrow, day_after_tomorrow)
+
+    for city in ["beijing", "london"]:
+        prev_date = utils.prev_date(today)
+        prev_date2 = utils.prev_date(prev_date)
+        getAQData(city, prev_date)
+        getAQData(city, prev_date2)

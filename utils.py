@@ -37,6 +37,14 @@ def int_to_time(time_int):
     datetime_struct = datetime.datetime.fromtimestamp(time_int * 3600)
     return datetime_struct.strftime('%Y-%m-%d %H:%M')
 
+def next_date(date):
+    datetime_next = int_to_time(time_to_int(date) + 24)
+    return datetime_next.split(" ")[0]
+
+def prev_date(date):
+    datetime_next = int_to_time(time_to_int(date) - 24)
+    return datetime_next.split(" ")[0]
+
 def gen_dist_matrix(aq_stations, meo_stations):
     dist_dim = 6
     dist_mat = []
