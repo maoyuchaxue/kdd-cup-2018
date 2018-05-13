@@ -10,7 +10,11 @@ urlprefix2 = "http://kdd.caiyunapp.com/competition/forecast/"
 
 
 # tmpstate = [time, temperature, pressure, humidity, winddirect, windspeed]
+global lastday
+global lasthr
 
+lasthr = []
+lastday = []
 
 def getRawPrevData(city, datebegin, dateend):
     if city == "beijing":
@@ -19,6 +23,7 @@ def getRawPrevData(city, datebegin, dateend):
         grid = "ld_grid/"
     url = urlprefix + grid + datebegin + "/" + dateend + "/2k0d1d8"
     f = urllib2.urlopen(url)
+    lastline = []
     with open("tmp.csv", "w") as csv_file:
         csv_writer = csv.writer(csv_file)
         content = f.read().split("\r\n")
@@ -30,7 +35,11 @@ def getRawPrevData(city, datebegin, dateend):
                 isFirst = False
                 continue
             tmpline = line.split(",")
-            csv_writer.writerow(tmpline[1:3] + tmpline[4:])
+            if len(tmpline) == 9:
+                csv_writer.writerow(tmpline[1:3] + tmpline[4:])
+                lastline = tmpline[4:]
+            else:
+                csv_writer.writerow(tmpline[1:3] + lastline)
 
 def getForeData(city, date):
     if city == "beijing":
@@ -50,11 +59,19 @@ def getForeData(city, date):
                 isFirst = False
                 continue
             tmpline = line.split(",")
-            csv_writer.writerow(tmpline[1:3] + tmpline[4:7] + [tmpline[8], tmpline[7]])
+            if len(tmpline) == 9:
+                csv_writer.writerow(tmpline[1:3] + tmpline[4:7] + [tmpline[8], tmpline[7]])
+                lastline = tmpline[4:7] + [tmpline[8], tmpline[7]]
+            else:
+                csv_writer.writerow(tmpline[1:3] + lastline)
 
 # change id,station_id,time,weather,temperature,pressure,humidity,wind_speed,wind_direction
 # into station_id, time,temperature,pressure,humidity,wind_direction,wind_speed
 def parseData(city, date, day1, day2):
+    print "parsing: ", date
+    global lastday
+    global lasthr
+
     csv_file = csv.reader(open("tmp.csv", 'r'))
     fdir = "./data/preprocessed/splitdata/" + city + "/" + date + "/"
     if not os.path.exists(fdir):
@@ -75,12 +92,21 @@ def parseData(city, date, day1, day2):
 
     for line in csv_file:
         gridid = line[0]
+
         time = line[1]
 
         tmpday = time.split(' ')[0]
 
         res = line
-        newdata = line[2:]
+
+        if len(line) != 7:
+            if len(lasthr) != 0:
+                newdata = lasthr
+            else:
+                newdata = ["16", "990", "35", "0", "0"]
+        else:
+            newdata = line[2:]
+            lasthr = newdata
 
         hres = updatelist(hlist[gridid], newdata, 0, 0) 
         res = res + hres
@@ -88,7 +114,14 @@ def parseData(city, date, day1, day2):
             csv_file2.writerow(res)
 
         if time.find("23:00:00") != -1:
-            daydata = hres[15: ]
+            if len(hlist[gridid]) != 20:
+                if len(lastday) != 0:
+                    daydata = lastday
+                else:
+                    daydata = ["16", "990", "35", "0", "0"]
+            else:
+                daydata = hres[15: ]
+                lastday = daydata
             res = [time.split(' ')[0]]
             dayres = updatelist(daylist[gridid], daydata, 1, 0)    
             if tmpday == day1 or tmpday == day2:
@@ -111,7 +144,7 @@ def genGetRawDate(date):
     return startdate, enddate
 
 if __name__ == "__main__":
-    today = "2018-05-02"
+    today = "2018-05-12"
 
     tomorrow = genNextDay(today)
     day_after_tomorrow = genNextDay(tomorrow)
