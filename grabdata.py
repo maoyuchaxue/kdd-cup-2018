@@ -91,6 +91,7 @@ def parseData(city, date, day1, day2):
         daylist[gridid] = []
 
     for line in csv_file:
+        print line[0], line[1]
         gridid = line[0]
 
         time = line[1]
@@ -114,7 +115,7 @@ def parseData(city, date, day1, day2):
             csv_file2.writerow(res)
 
         if time.find("23:00:00") != -1:
-            if len(hlist[gridid]) != 20:
+            if len(hlist[gridid]) != 24:
                 if len(lastday) != 0:
                     daydata = lastday
                 else:
