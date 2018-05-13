@@ -5,7 +5,7 @@ import math
 import utils
 import csv
 
-date = "2018-05-13"
+date = "2018-05-10"
 
 beijing_test_name = "testout"
 beijing_inf = 0
