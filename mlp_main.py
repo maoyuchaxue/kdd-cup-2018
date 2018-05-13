@@ -2,11 +2,11 @@
 
 import tensorflow as tf
 import numpy as np
-import os
 import time
 
 from mlp_model import Model
 import dataset
+import pred_dataset
 
 import argparse
 import sys, os
@@ -16,15 +16,17 @@ import utils
 parser = argparse.ArgumentParser(description="add arguments below:")
 parser.add_argument('--test', action="store_false")
 parser.add_argument('--name', type=str, help="test name", default="default")
+parser.add_argument('--date', type=str, help="test date", default="2018-05-02")
 parser.add_argument('--inf', type=int, help="inference version", default=0)
+parser.add_argument('--city', type=str, help="city name", default="beijing")
 arg = parser.parse_args()
 
 
-summary_root = "./train/" + arg.name + "/"
+summary_root = "./train/" + arg.city + "/" + arg.name + "/"
 if (not os.path.exists(summary_root)):
     os.mkdir(summary_root)
 
-summary = "./train/" + arg.name + "/summary.log"
+summary = "./train/" + arg.city + "/"  + arg.name + "/summary.log"
 
 summary_file = None
 if (not os.path.exists(summary)):
@@ -33,8 +35,8 @@ else:
     summary_file = open(summary, "a")
     
 
-tf.app.flags.DEFINE_string("current_test_date", "5-10", "current test date string")
-tf.app.flags.DEFINE_string("city_name", "beijing", "city name")
+tf.app.flags.DEFINE_string("current_test_date", arg.date, "current test date string")
+tf.app.flags.DEFINE_string("city_name", arg.city, "city name")
 tf.app.flags.DEFINE_string("time_step_name", "hourunit", "hourunit or dayunit")
 
 tf.app.flags.DEFINE_integer("batch_size", 20, "batch size for training")
@@ -43,14 +45,19 @@ tf.app.flags.DEFINE_integer("valid_epochs", 5, "interval of validate epochs")
 tf.app.flags.DEFINE_float("keep_prob", 0.7, "drop out rate")
 tf.app.flags.DEFINE_boolean("is_train", arg.test, "False to inference")
 tf.app.flags.DEFINE_string("data_dir", "", "data dir")
-tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.name, "training dir")
+tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.city + "/" + arg.name, "training dir")
 tf.app.flags.DEFINE_integer("inference_version", arg.inf, "the version for inferencing")
 FLAGS = tf.app.flags.FLAGS
 
+if (FLAGS.is_train):
+    data = dataset.getDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=FLAGS.batch_size,
+        is_train=FLAGS.is_train, date=FLAGS.current_test_date)
+else:
+    data = pred_dataset.getPredDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=48,
+        date=FLAGS.current_test_date)
 
-data = dataset.getDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=FLAGS.batch_size,
-     is_train=FLAGS.is_train, date=FLAGS.current_test_date)
 dist_mat = data.get_dist_matrix()
+(aq_stations, meo_stations, dist_dims) = dist_mat.shape
 
 with tf.Session() as sess:
     if not os.path.exists(FLAGS.train_dir):
@@ -58,7 +65,7 @@ with tf.Session() as sess:
     
     if FLAGS.is_train:
         
-        mlp_model = Model(True, batch_size=FLAGS.batch_size, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims)
+        mlp_model = Model(True, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=dist_dims)
         if tf.train.get_checkpoint_state(FLAGS.train_dir):
             mlp_model.saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
         else:
@@ -143,11 +150,11 @@ with tf.Session() as sess:
                 summary.value.add(tag='smape/val', simple_value=smape)
                 summary_writer.add_summary(summary, epoch)
 
-                model.saver.save(sess, '%s/checkpoint' % FLAGS.train_dir, global_step=mlp_model.global_step)
+                mlp_model.saver.save(sess, '%s/checkpoint' % FLAGS.train_dir, global_step=mlp_model.global_step)
 
     else:
 
-        mlp_model = Model(False, batch_size=FLAGS.batch_size, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims)
+        mlp_model = Model(False, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims)
 
         if FLAGS.inference_version == 0:
             model_path = tf.train.latest_checkpoint(FLAGS.train_dir)
@@ -156,13 +163,12 @@ with tf.Session() as sess:
 
         mlp_model.saver.restore(sess, model_path)
         
-        n_train = data.ns[0]
-        iters = int(math.floor(n_train * 1.0 / FLAGS.batch_size))
+        n_test = data.n
+        iters = 1
 
+        out_file = open("./data/output/{test_city}-{test_date}-{test_name}.out.csv".format(test_city=arg.city,test_date=FLAGS.current_test_date, test_name=arg.name),"w")
 
-        out_file = open("./data/output/{test_date}-out.csv".format(test_date=FLAGS.current_test_date),"w")
-
-        y_empty = np.zeros((FLAGS.batch_size, len(data.aq_stations), data.aq_dim))
+        y_empty = np.zeros((48, len(data.aq_stations), data.aq_dim))
         for i in range(iters):
             X_batch = data.get_next_batch("train")
             print(X_batch.shape)
@@ -170,7 +176,7 @@ with tf.Session() as sess:
 
             pred, = sess.run([mlp_model.pred], feed)
         
-            for b in range(FLAGS.batch_size):
+            for b in range(48):
                 for aq_ind, aq_station_info in enumerate(data.aq_stations):
                     pred_list = pred[b][aq_ind]
                     out_file.write(aq_station_info[0] + "," + ",".join([str(p) for p in pred_list]) + "\n")

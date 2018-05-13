@@ -2,3 +2,5 @@
 *.xlsx
 train
 __pycache__
+*.pyc
+private_config.py
