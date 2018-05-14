@@ -5,12 +5,12 @@ import math
 import utils
 import csv
 
-date = "2018-05-10"
+date = "2018-05-13"
 
-beijing_test_name = "testout"
+beijing_test_name = "mlpl"
 beijing_inf = 0
 
-london_test_name = "testout"
+london_test_name = "mlpl"
 london_inf = 0
 
 os.system("python3 ./mlp_main.py --test --city beijing --inf {inf} --name {name} --date {date}".format(
@@ -25,6 +25,22 @@ output_filename_london = "./data/output/london-{test_date}-{test_name}.out.csv".
 
 output_filename_merged = "./data/output/{test_date}_merged.out.csv".format(test_date=date)
 
+def get_predict_stations():
+    f1 = open("./data/preprocessed/london_predict_aqstation.csv", "r")
+    f2 = open("./data/preprocessed/beijing_aqstation.csv", "r")
+    
+    lst = []
+    for f in [f1, f2]:
+        t = csv.reader(f)
+        for l in t:
+            if (len(l) >= 3):
+                lst.append(l[0])
+        f.close()
+    print(lst)
+    return lst
+
+pred_list = get_predict_stations()
+
 station_dict = {}
 station_list = []
 for fn in [output_filename_beijing, output_filename_london]:
@@ -32,6 +48,9 @@ for fn in [output_filename_beijing, output_filename_london]:
     r = csv.reader(f)    
     for l in r:
         station_name = l[0]
+        if (not station_name in pred_list):
+            continue
+
         station_datas = [float(i) for i in l[1:]]
         if not station_name in station_dict:
             station_dict[station_name] = []

@@ -222,17 +222,17 @@ if __name__ == "__main__":
     day_after_tomorrow = genNextDay(tomorrow)
     raw_dates = genRawDates(today)
 
-    # for d in raw_dates:
-    #     getRawPrevData("london", d)
+    for d in raw_dates:
+        getRawPrevData("london", d)
 
-    # getForeData("london", today)
-    # parseData("london", raw_dates, today, tomorrow, day_after_tomorrow)
+    getForeData("london", today)
+    parseData("london", raw_dates, today, tomorrow, day_after_tomorrow)
 
-    # for d in raw_dates:
-    #     getRawPrevData("beijing", d)
+    for d in raw_dates:
+        getRawPrevData("beijing", d)
 
-    # getForeData("beijing", today)
-    # parseData("beijing", raw_dates, today, tomorrow, day_after_tomorrow)
+    getForeData("beijing", today)
+    parseData("beijing", raw_dates, today, tomorrow, day_after_tomorrow)
 
     for city in ["beijing", "london"]:
         prev_date = utils.prev_date(today)
