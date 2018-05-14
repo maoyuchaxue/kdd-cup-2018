@@ -36,6 +36,13 @@ class Dataset:
         self.meo_dim = 5
         self.time_steps = 5
 
+        self.prev_aq_features_in_file = []
+        for i in range(1, self.time_steps):
+            self.prev_aq_features_in_file += [(self.aq_input_dims * i + c) for c in self.aq_features_in_file]
+
+        print(self.prev_aq_features_in_file)
+        self.prev_aq_dims = len(self.prev_aq_features_in_file)
+
         self.meo_expanded_dims = self.meo_dim * self.time_steps
 
         self.init_stations()
@@ -65,7 +72,7 @@ class Dataset:
 
     def load_data(self):
         time_set = None
-        
+        tmp_set_count = 0
         if (self.is_train):
             self.aq_readers = []
             self.aq_files = []
@@ -75,18 +82,22 @@ class Dataset:
                 aq_file_name = os.path.join(self.aq_path, aq_station_info[0] + ".csv")
 
                 # if (len(self.aq_readers) == 0):
-                aq_file = open(aq_file_name, "r")
-                aq_reader = csv.reader(aq_file)
-                for l in aq_reader:
-                    if (len(l) == self.aq_input_dims * self.time_steps + 1):
-                        cur_time = utils.time_to_int(l[0])
-                        tmp_time_set.add(cur_time)
+                
+                if tmp_set_count <= 10:
+                    aq_file = open(aq_file_name, "r")
+                    aq_reader = csv.reader(aq_file)
+                    for l in aq_reader:
+                        if (len(l) == self.aq_input_dims * self.time_steps + 1):
+                            cur_time = utils.time_to_int(l[0])
+                            tmp_time_set.add(cur_time)
 
-                aq_file.close()
-                if (time_set == None):
-                    time_set = tmp_time_set
-                else:
-                    time_set &= tmp_time_set
+                    aq_file.close()
+
+                    if (time_set == None):
+                        time_set = tmp_time_set
+                    else:
+                        time_set &= tmp_time_set
+                    tmp_set_count += 1
 
                 cur_aq_files = [open(aq_file_name, "r") for i in range(len(self.split_ratio))]
                 cur_aq_readers = [csv.reader(aq_file) for aq_file in cur_aq_files]
@@ -98,23 +109,29 @@ class Dataset:
 
         self.meo_readers = []
         self.meo_files = []
+
+        tmp_set_count = 0
         for meo_station_info in self.meo_stations:
             tmp_time_set = set()
             
             meo_file_name = os.path.join(self.meo_path, meo_station_info[0] + ".csv")
 
             # if (len(self.meo_files) == 0):
-            meo_file = open(meo_file_name, "r")
-            meo_reader = csv.reader(meo_file)
-            for l in meo_reader:
-                if (len(l) != self.meo_expanded_dims + 1):
-                    continue
-                cur_time = utils.time_to_int(l[0])
-                tmp_time_set.add(cur_time)
-            if (time_set == None):
-                time_set = tmp_time_set
-            else:
-                time_set &= tmp_time_set
+            
+            if tmp_set_count <= 10:
+                meo_file = open(meo_file_name, "r")
+                meo_reader = csv.reader(meo_file)
+                for l in meo_reader:
+                    if (len(l) != self.meo_expanded_dims + 1):
+                        continue
+                    cur_time = utils.time_to_int(l[0])
+                    tmp_time_set.add(cur_time)
+            
+                if (time_set == None):
+                    time_set = tmp_time_set
+                else:
+                    time_set &= tmp_time_set
+                tmp_set_count += 1
             meo_file.close()
             print(meo_station_info[0])
 
@@ -157,12 +174,12 @@ class Dataset:
 
         aq_data_arr = []
         meo_data_arr = []
-        # prev_aq_data_arr = []
+        prev_aq_data_arr = []
         for tim in time_slice:
             
             if (self.is_train):
                 cur_aq_data_arr = []
-                # cur_prev_aq_data_arr = []
+                cur_prev_aq_data_arr = []
                 for reader_arr in self.aq_readers:
                     reader = reader_arr[t]
                     l = next(reader)
@@ -170,11 +187,11 @@ class Dataset:
                         l = next(reader)
                     l = l[1:]
                     cur_aq_data_arr.append([float(l[i]) for i in self.aq_features_in_file])
-                    # cur_prev_aq_data_arr.append([float(i) for i in l[self.prev_aq_features_in_file]])
+                    cur_prev_aq_data_arr.append([float(l[i]) for i in self.prev_aq_features_in_file])
 
 
                 aq_data_arr.append(cur_aq_data_arr)
-            # prev_aq_data_arr.append(cur_prev_aq_data_arr)
+            prev_aq_data_arr.append(cur_prev_aq_data_arr)
 
             cur_meo_data_arr = []
             for reader_arr in self.meo_readers:
@@ -217,7 +234,7 @@ class Dataset:
 
         
         if (self.is_train):
-            return np.array(aq_data_arr), np.array(meo_data_arr)
+            return np.array(aq_data_arr), np.array(prev_aq_data_arr), np.array(meo_data_arr)
         else:
             return np.array(meo_data_arr)
         # return np.array(aq_data_arr), np.array(prev_aq_data_arr), np.array(meo_data_arr)
@@ -245,8 +262,8 @@ def getDataset(city, time_type="hourunit", split_ratio=(0.8, 0.2), batch_size=50
 if __name__ == "__main__":
     dataset = getDataset("beijing", "hourunit", batch_size=10, is_train=True)
     dist_mat = dataset.get_dist_matrix()
-    x,y = (dataset.get_next_batch())
-    print(x.shape,y.shape)
+    x,px,y = (dataset.get_next_batch())
+    print(x.shape,px.shape,y.shape)
 
 
 
