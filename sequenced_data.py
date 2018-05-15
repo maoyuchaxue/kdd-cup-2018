@@ -4,7 +4,7 @@ import utils
 from sklearn.preprocessing import Imputer
 
 class SequencedAQData:
-    def __init__(self, city):
+    def __init__(self, city, aq_csv_fn, meo_csv_fn):
         self.seq_data = {} # 48 * stations * aq_features
         self.city = city
 
@@ -13,8 +13,32 @@ class SequencedAQData:
             self.aq_cols = [0, 1, 4]
         else:
             self.aq_cols = [0, 1]
+        
+        self.aq_csv = aq_csv_fn
+        self.meo_csv = meo_csv_fn
+
+        self.init_stations()
+
+    def init_stations(self):
+        
+        aq_csv_file = open(self.aq_csv, "r")
+        aq_csv_reader = csv.reader(aq_csv_file)
+        self.aq_stations = [] # (station name, x, y)
+        for l in aq_csv_reader:
+            if (len(l) >= 3):
+                self.aq_stations.append([l[0], float(l[1]), float(l[2])])
+        aq_csv_file.close()
+
+        meo_csv_file = open(self.meo_csv, "r")
+        meo_csv_reader = csv.reader(meo_csv_file)
+        self.meo_stations = [] # (station name, x, y)
+        for l in meo_csv_reader:
+            if (len(l) == 3):
+                self.meo_stations.append([l[0], float(l[1]), float(l[2])])
+        meo_csv_file.close()
+        print(len(self.aq_stations), len(self.meo_stations))
     
-    def add_row(self, time, aq_data_row):
+    def add_row(self, aq_data_row):
         self.seq_data = self.seq_data[1:,:,:]
         aq_data = aq_data_row.reshape((1, self.stations, self.aq_features)) 
         self.seq_data = np.concatenate([self.seq_data, aq_data], axis=0)
@@ -28,7 +52,7 @@ class SequencedAQData:
             concat_data.append(mean_data)
 
         res_data = np.concatenate(concat_data, axis=2)
-        return res_data # stations * aq_features * timesteps
+        return np.reshape(res_data, (1, self.stations, self.aq_features * len(self.step_list))) # stations * aq_features * timesteps
     
     def load_from_csvs(self, csvs):
         self.station_names = []
@@ -40,10 +64,11 @@ class SequencedAQData:
                 
             first = True
             for l in r:
+                if (len(l) == 0):
+                    continue
                 if first:
                     first = False
                     continue
-
                 station_name = l[0]
                 if (not station_name in self.seq_data):
                     self.seq_data[station_name] = {}
@@ -59,10 +84,11 @@ class SequencedAQData:
         
         seq_arr = []
 
-        for t in range(min_t, min_t+48):
+        for t in range(int(min_t), int(min_t)+48):
             t_arr = []
-            for station in self.station_names:
-                if (not t in self.seq_data[station]):
+            for station_info in self.aq_stations:
+                station = station_info[0]
+                if (not station in self.seq_data or not t in self.seq_data[station]):
                     t_arr.append([np.nan for i in range(len(self.aq_cols))])
                 else:
                     t_arr.append(self.seq_data[station][t])
@@ -73,16 +99,24 @@ class SequencedAQData:
         self.times, self.stations, self.aq_features = self.seq_data.shape
 
         self.seq_data = np.reshape(self.seq_data, (self.times * self.stations, -1))
+        print(self.seq_data.shape)
         imp = Imputer(strategy='mean', axis=0)
-
         imp.fit(self.seq_data)
+        print(self.seq_data.shape)
         self.seq_data = imp.transform(self.seq_data)
         print(self.seq_data.shape)
         self.seq_data = np.reshape(self.seq_data, (self.times, self.stations, self.aq_features))
 
 def getSequencedAQDataForDate(city, date):
 
-    seq = SequencedAQData(city)
+    aq_csv_fn = "./data/preprocessed/{city}_aqstation.csv".format(city=city)
+
+    if (city == "london_others" or city == "london_predict" or city == "london"):
+        meo_csv_fn = "./data/London_grid_weather_station.csv"
+    else:
+        meo_csv_fn = "./data/Beijing_grid_weather_station.csv"
+
+    seq = SequencedAQData(city, aq_csv_fn, meo_csv_fn)
     
     date_prev1 = utils.prev_date(date)
     date_prev2 = utils.prev_date(date_prev1)

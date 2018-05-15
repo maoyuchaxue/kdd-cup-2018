@@ -4,7 +4,8 @@ import tensorflow as tf
 import numpy as np
 import time
 
-from mlp_model import Model
+from aq_mlp_model import AQModel
+import sequenced_data
 import dataset
 import pred_dataset
 
@@ -42,7 +43,7 @@ tf.app.flags.DEFINE_string("time_step_name", "hourunit", "hourunit or dayunit")
 tf.app.flags.DEFINE_integer("batch_size", 32, "batch size for training")
 tf.app.flags.DEFINE_integer("num_epochs", 50, "number of epochs")
 tf.app.flags.DEFINE_integer("valid_epochs", 3, "interval of validate epochs")
-tf.app.flags.DEFINE_float("keep_prob", 0.7, "drop out rate")
+tf.app.flags.DEFINE_float("keep_prob", 0.9, "drop out rate")
 tf.app.flags.DEFINE_boolean("is_train", arg.test, "False to inference")
 tf.app.flags.DEFINE_string("data_dir", "", "data dir")
 tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.city + "/" + arg.name, "training dir")
@@ -53,7 +54,7 @@ if (FLAGS.is_train):
     data = dataset.getDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=FLAGS.batch_size,
         is_train=FLAGS.is_train, date=FLAGS.current_test_date)
 else:
-    data = pred_dataset.getPredDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=48,
+    data = pred_dataset.getPredDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=1,
         date=FLAGS.current_test_date)
 
 dist_mat = data.get_dist_matrix()
@@ -65,7 +66,7 @@ with tf.Session() as sess:
     
     if FLAGS.is_train:
         
-        mlp_model = Model(True, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=dist_dims, keep_prob=FLAGS.keep_prob)
+        mlp_model = AQModel(True, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim,  prev_aq_features=data.prev_aq_dims, meo_features=data.meo_expanded_dims, dist_features=dist_dims, keep_prob=FLAGS.keep_prob)
         if tf.train.get_checkpoint_state(FLAGS.train_dir):
             mlp_model.saver.restore(sess, tf.train.latest_checkpoint(FLAGS.train_dir))
         else:
@@ -79,9 +80,9 @@ with tf.Session() as sess:
             n_train = data.ns[0]
             iters = int(math.floor(n_train * 1.0 / FLAGS.batch_size))
             for i in range(iters):
-                y_batch, _, X_batch = data.get_next_batch("train")
-                print(X_batch.shape, y_batch.shape)
-                feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.dist_mat: dist_mat}
+                y_batch, prev_y_batch, X_batch = data.get_next_batch("train")
+                print(X_batch.shape, prev_y_batch.shape, y_batch.shape)
+                feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.prev_y_: prev_y_batch, mlp_model.dist_mat: dist_mat, mlp_model.cur_batch_size: y_batch.shape[0]}
 
                 cur_loss, _ = sess.run([mlp_model.loss, mlp_model.train_op], feed)
 
@@ -133,9 +134,9 @@ with tf.Session() as sess:
 
                 smapes = []
                 for i in range(iters):
-                    y_batch, _, X_batch = data.get_next_batch("val")
-                    print(X_batch.shape, y_batch.shape)
-                    feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.dist_mat: dist_mat}
+                    y_batch, prev_y_batch, X_batch = data.get_next_batch("val")
+                    print(X_batch.shape, prev_y_batch.shape, y_batch.shape)
+                    feed = {mlp_model.x_: X_batch, mlp_model.y_: y_batch, mlp_model.prev_y_: prev_y_batch, mlp_model.dist_mat: dist_mat, mlp_model.cur_batch_size: y_batch.shape[0]}
                     y_pred, cur_loss = sess.run([mlp_model.pred, mlp_model.loss], feed)
                     tot_valid_losses += cur_loss
                     smape = utils.SMAPE(y_batch, y_pred)
@@ -153,8 +154,8 @@ with tf.Session() as sess:
                 mlp_model.saver.save(sess, '%s/checkpoint' % FLAGS.train_dir, global_step=mlp_model.global_step)
 
     else:
-
-        mlp_model = Model(False, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims, keep_prob=FLAGS.keep_prob)
+        seq_aq_data = sequenced_data.getSequencedAQDataForDate(arg.city, FLAGS.current_test_date)
+        mlp_model = AQModel(False, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim, prev_aq_features=data.prev_aq_dims, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims, keep_prob=FLAGS.keep_prob)
 
         if FLAGS.inference_version == 0:
             model_path = tf.train.latest_checkpoint(FLAGS.train_dir)
@@ -164,20 +165,23 @@ with tf.Session() as sess:
         mlp_model.saver.restore(sess, model_path)
         
         n_test = data.n
-        iters = 1
+        iters = 48
 
         out_file = open("./data/output/{test_city}-{test_date}-{test_name}.out.csv".format(test_city=arg.city,test_date=FLAGS.current_test_date, test_name=arg.name),"w")
 
-        y_empty = np.zeros((48, len(data.aq_stations), data.aq_dim))
+        y_empty = np.zeros((1, len(data.aq_stations), data.aq_dim))
         for i in range(iters):
             X_batch = data.get_next_batch("train")
+            prev_y_batch = seq_aq_data.get_next_average_info()
             print(X_batch.shape)
-            feed = {mlp_model.x_: X_batch, mlp_model.y_: y_empty, mlp_model.dist_mat: dist_mat}
+            feed = {mlp_model.x_: X_batch, mlp_model.prev_y_: prev_y_batch, mlp_model.y_: y_empty, mlp_model.dist_mat: dist_mat, mlp_model.cur_batch_size: 1}
 
             pred, = sess.run([mlp_model.pred], feed)
-        
-            for b in range(48):
-                for aq_ind, aq_station_info in enumerate(data.aq_stations):
-                    pred_list = pred[b][aq_ind]
-                    out_file.write(aq_station_info[0] + "," + ",".join([str(p) for p in pred_list]) + "\n")
+
+            seq_aq_data.add_row(pred)
+            
+            for aq_ind, aq_station_info in enumerate(data.aq_stations):
+                pred_list = pred[0][aq_ind]
+                out_file.write(aq_station_info[0] + "," + ",".join([str(p) for p in pred_list]) + "\n")
+
         out_file.close()

@@ -27,6 +27,7 @@ class PredDataset:
         self.time_steps = 5
         # self.aq_expanded_dims = self.aq_dim * (self.time_steps - 1)
         self.meo_expanded_dims = self.meo_dim * self.time_steps
+        self.prev_aq_dims = (self.time_steps - 1) * self.aq_dim
 
         self.data_ind = 0
         self.init_stations()
