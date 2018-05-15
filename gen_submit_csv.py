@@ -10,7 +10,7 @@ date = "2018-05-14"
 beijing_test_name = "aq_mlp_kp0.9"
 beijing_inf = 0
 
-london_test_name = "aq_mlp_kp0.9"
+london_test_name = "mlpl"
 london_inf = 0
 
 outfile_label = "tmp"
@@ -18,7 +18,7 @@ outfile_label = "tmp"
 os.system("python3 ./aq_mlp_main.py --test --city beijing --inf {inf} --name {name} --date {date}".format(
     inf=beijing_inf, name=beijing_test_name, date=date))
 
-os.system("python3 ./aq_mlp_main.py --test --city london --inf {inf} --name {name} --date {date}".format(
+os.system("python3 ./mlp_main.py --test --city london --inf {inf} --name {name} --date {date}".format(
     inf=london_inf, name=london_test_name, date=date))
 
 output_filename_beijing = "./data/output/beijing-{test_date}-{test_name}.out.csv".format(test_date=date, test_name=beijing_test_name)

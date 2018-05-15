@@ -62,12 +62,8 @@ class SequencedAQData:
             f = open(fn, "r")
             r = csv.reader(f)
                 
-            first = True
             for l in r:
                 if (len(l) == 0):
-                    continue
-                if first:
-                    first = False
                     continue
                 station_name = l[0]
                 if (not station_name in self.seq_data):
@@ -88,7 +84,10 @@ class SequencedAQData:
             t_arr = []
             for station_info in self.aq_stations:
                 station = station_info[0]
-                if (not station in self.seq_data or not t in self.seq_data[station]):
+                if (not station in self.seq_data):
+                    t_arr.append([np.nan for i in range(len(self.aq_cols))])
+                    # t_arr.append([0 for i in range(len(self.aq_cols))])
+                elif (not t in self.seq_data[station]):
                     t_arr.append([np.nan for i in range(len(self.aq_cols))])
                 else:
                     t_arr.append(self.seq_data[station][t])
@@ -98,6 +97,7 @@ class SequencedAQData:
         print(self.seq_data.shape)
         self.times, self.stations, self.aq_features = self.seq_data.shape
 
+        print(self.seq_data[0])
         self.seq_data = np.reshape(self.seq_data, (self.times * self.stations, -1))
         print(self.seq_data.shape)
         imp = Imputer(strategy='mean', axis=0)
