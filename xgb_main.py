@@ -5,9 +5,8 @@ from xgb_model import DataSet
 param = {}
 # scale weight of positive examples
 param['eta'] = 0.1
-param['max_depth'] = 6
+param['max_depth'] = 8
 param['silent'] = 1
-param['num_class'] = 6
 
 if __name__ == "__main__":
     dataset = DataSet("london", True)
