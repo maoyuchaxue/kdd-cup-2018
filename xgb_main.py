@@ -13,4 +13,5 @@ if __name__ == "__main__":
     dataset.trainEntrance()
     num_round = 5
     xg_train = xgb.DMatrix(dataset.model, label=dataset.label)
-    bst = xgb.train(param, xg_train, num_round)
+    xg_train.save_binary("./train.buffer")
+#    bst = xgb.train(param, xg_train, num_round)
