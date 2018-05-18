@@ -9,7 +9,7 @@ class Model:
                  is_train,
                  aq_stations=10,
                  meo_stations=10,
-                 learning_rate=0.005,
+                 learning_rate=0.001,
                  learning_rate_decay_factor=0.9,
                  aq_features=3,
                  meo_features=25,
@@ -56,6 +56,7 @@ class Model:
         
         self.pred = lin5
         
+        # self.loss = 2 * tf.reduce_mean(tf.abs(self.pred - self.y_) / (tf.abs(self.pred) + tf.abs(self.y_) + 1e-3))
         self.loss = tf.reduce_mean(tf.squared_difference(self.pred, self.y_))
         
         self.learning_rate = tf.Variable(float(learning_rate), trainable=False, dtype=tf.float32)

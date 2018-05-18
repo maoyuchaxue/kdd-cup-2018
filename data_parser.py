@@ -1,5 +1,9 @@
 import csv
+import utils
 import math
+import numpy as np
+import sklearn.preprocessing as pre
+
 
 days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
@@ -155,13 +159,24 @@ def updatelist(datalist, newdata, timetype, datatype):
 def genEnhancedParsing(city, gridid):
     readfn = "data/preprocessed/rawdata/meo_data/" + city + "/" + gridid + ".csv"
     writefn = "data/preprocessed/hourunit/meo_data/" + city + "/" + gridid + ".csv"
+    writefn_params = "data/preprocessed/hourunit/meo_data/" + city + "/" + gridid + "_params.csv"
     writefn2 = "data/preprocessed/dayunit/meo_data/" + city + "/" + gridid + ".csv"
+    writefn2_params = "data/preprocessed/dayunit/meo_data/" + city + "/" + gridid + "_params.csv"
+
     csv_file = csv.reader(open(readfn, 'r'))
     csv_file2 = csv.writer(open(writefn, 'w'))
+    csv_file2_params = csv.writer(open(writefn_params, 'w'))
+
     csv_file3 = csv.writer(open(writefn2, 'w'))
+    csv_file3_params = csv.writer(open(writefn2_params, 'w'))
 
     hlist = []
     daylist = []
+
+    hour_res_arr = []
+    hour_time_list = []
+    day_res_arr = []
+    day_time_list = []
 
     for line in csv_file:
         time = line[0]
@@ -170,25 +185,57 @@ def genEnhancedParsing(city, gridid):
         newdata = line[1:]
 
         hres = updatelist(hlist, newdata, 0, 0) 
-        res = res + hres
-        csv_file2.writerow(res)
+        res = newdata + hres
+
+        if (len(res) >= 25):
+            hour_res_arr.append(res)
+            hour_time_list.append(time)
 
         if time.find("23:00:00") != -1:
             daydata = hres[15: ]
-            res = [time.split(' ')[0]]
+            cur_time = time.split(' ')[0]
             dayres = updatelist(daylist, daydata, 1, 0)    
-            csv_file3.writerow(res + dayres)
+            res = dayres
+            if (len(res) >= 25):
+                day_res_arr.append(res)
+                day_time_list.append(cur_time)
 
+    hour_res = np.array(hour_res_arr)
+    hour_scaler = pre.StandardScaler()
+    hour_scaler.fit(hour_res)
+    hour_res = hour_scaler.transform(hour_res)
+
+    csv_file2_params.writerow([m for m in hour_scaler.mean_])
+    csv_file2_params.writerow([m for m in hour_scaler.scale_])
+    for i in range(hour_res.shape[0]):
+        csv_file2.writerow([hour_time_list[i]] + [round(m, 4) for m in hour_res[i]])
+
+    day_res = np.array(day_res_arr)
+    day_scaler = pre.StandardScaler()
+    day_scaler.fit(day_res)
+    day_res = day_scaler.transform(day_res)
+    csv_file3_params.writerow([m for m in day_scaler.mean_])
+    csv_file3_params.writerow([m for m in day_scaler.scale_])
+
+    for i in range(day_res.shape[0]):
+        csv_file3.writerow([day_time_list[i]] + [round(m, 4) for m in day_res[i]])
+    print(hour_res.shape, day_res.shape)
+    
 ## aq
 # london pm2.5 pm10 no2
 # beijing PM2.5,PM10,NO2,CO,O3,SO2
 def genAqEnhancedParsing(city, stationid):
     readfn = "data/preprocessed/rawdata/aq_data/" + city + "/" + stationid + ".csv"
     writefn = "data/preprocessed/hourunit/aq_data/" + city + "/" + stationid + ".csv"
+    writefn_params = "data/preprocessed/hourunit/aq_data/" + city + "/" + stationid + "_params.csv"
     writefn2 = "data/preprocessed/dayunit/aq_data/" + city + "/" + stationid + ".csv"
+    writefn2_params = "data/preprocessed/dayunit/aq_data/" + city + "/" + stationid + "_params.csv"
     csv_file = csv.reader(open(readfn, 'r'))
     csv_file2 = csv.writer(open(writefn, 'w'))
+    csv_file2_params = csv.writer(open(writefn_params, 'w'))
+
     csv_file3 = csv.writer(open(writefn2, 'w'))
+    csv_file3_params = csv.writer(open(writefn2_params, 'w'))
 
     if city == "beijing":
         datakind = 6
@@ -198,6 +245,11 @@ def genAqEnhancedParsing(city, stationid):
     hlist = []
     daylist = []
 
+    hour_res_arr = []
+    hour_time_list = []
+    day_res_arr = []
+    day_time_list = []
+
     for line in csv_file:
         time = line[0]
 
@@ -205,14 +257,44 @@ def genAqEnhancedParsing(city, stationid):
         newdata = line[1:]
 
         hres = updatelist(hlist, newdata, 0, datakind) 
-        res = res + hres
-        csv_file2.writerow(res)
+        res = newdata + hres
+
+        if len(hres) == datakind * 4:
+            hour_res_arr.append(res)
+            hour_time_list.append(time)
 
         if time.find("23:00") != -1 and len(hres) == datakind * 4:
             daydata = hres[datakind * 3: ]
-            res = [time.split(' ')[0]]
+            cur_time = time.split(' ')[0]
             dayres = updatelist(daylist, daydata, 1, datakind)    
-            csv_file3.writerow(res + dayres)
+            
+            res = dayres
+            if (len(res) >= datakind * 5):
+                day_res_arr.append(res)
+                day_time_list.append(cur_time)
+
+
+    hour_res = np.array(hour_res_arr)
+    hour_scaler = pre.StandardScaler()
+    hour_scaler.fit(hour_res)
+    hour_res = hour_scaler.transform(hour_res)
+
+    csv_file2_params.writerow([m for m in hour_scaler.mean_])
+    csv_file2_params.writerow([m for m in hour_scaler.scale_])
+    for i in range(hour_res.shape[0]):
+        csv_file2.writerow([hour_time_list[i]] + [round(m, 4) for m in hour_res[i]])
+
+    day_res = np.array(day_res_arr)
+    day_scaler = pre.StandardScaler()
+    day_scaler.fit(day_res)
+    day_res = day_scaler.transform(day_res)
+    csv_file3_params.writerow([m for m in day_scaler.mean_])
+    csv_file3_params.writerow([m for m in day_scaler.scale_])
+
+    for i in range(day_res.shape[0]):
+        csv_file3.writerow([day_time_list[i]] + [round(m, 4) for m in day_res[i]])
+    print(hour_res.shape, day_res.shape)
+    
 
 def rewriteAqRawData(datalist, vallist, valcnt, city, stationid, gval, gcnt, a):
     print stationid 
@@ -298,20 +380,23 @@ if __name__ == "__main__":
     
     # genMeoPrepocessed("beijing")
     # genMeoPrepocessed("london")
+
+
     gridlist = getGridList("beijing")
     for grid in gridlist:
         print(grid[0])
         genEnhancedParsing("beijing", grid[0])
+        
     gridlist = getGridList("london")
     for grid in gridlist:
         print(grid[0])
         genEnhancedParsing("london", grid[0])
     
-    '''
-    genRawAqData("beijing", True, False)
-    genRawAqData("beijing", True, True)
-    genRawAqData("london", False, False)
-    genRawAqData("london", True, False)
+    
+    # genRawAqData("beijing", True, False)
+    # genRawAqData("beijing", True, True)
+    # genRawAqData("london", False, False)
+    # genRawAqData("london", True, False)
     
     aqstation = getAqStation("beijing")
     for station in aqstation:
@@ -322,8 +407,8 @@ if __name__ == "__main__":
     for station in aqstation:
         print station[0]
         genAqEnhancedParsing("london", station[0])
+
     aqstation = getAqStation("london_others")
     for station in aqstation:
         print station[0]
         genAqEnhancedParsing("london", station[0])
-    '''

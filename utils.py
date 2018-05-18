@@ -1,6 +1,8 @@
 import numpy as np
 import math
 import time
+import os
+import csv
 import datetime
 from sklearn import preprocessing
 
@@ -8,7 +10,7 @@ from sklearn import preprocessing
 
 def SMAPE(actual, predicted):
     # p = pred
-    # p[pred < 0] = 0
+    predicted[predicted < 0] = 0
     # return np.mean(np.abs(actual - p) / ((actual + p + eps) / 2.0))
     dividend= np.abs(np.array(actual) - np.array(predicted))
     denominator = np.array(actual) + np.array(predicted)
@@ -70,3 +72,29 @@ def gen_dist_matrix(aq_stations, meo_stations):
     dist_matrix = np.reshape(dist_matrix, original_shape)
 
     return dist_dim, dist_matrix
+
+    
+def get_scale_params(city, data_type="aq", time_type="hourunit"):
+    means = {}
+    scales = {}
+    params_path = "./data/preprocessed/{time_type}/{data_type}_data/{city}/".format(city=city, data_type=data_type, time_type=time_type)
+
+    for fn in os.listdir(params_path):
+        if (fn.endswith("_params.csv")):
+            station_id = fn.replace("_params.csv", "")
+            full_fn = os.path.join(params_path, fn)
+            reader = csv.reader(open(full_fn, "r"))
+
+            first = True
+            for l in reader:
+                if (len(l) == 0):
+                    continue
+
+                if (first):
+                    first = False
+                    means[station_id] = [float(i) for i in l]
+                else:
+                    scales[station_id] = [float(i) for i in l]
+
+    print(len(means), len(scales))
+    return means, scales

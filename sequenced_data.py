@@ -4,15 +4,30 @@ import utils
 from sklearn.preprocessing import Imputer
 
 class SequencedAQData:
-    def __init__(self, city, aq_csv_fn, meo_csv_fn):
+    def __init__(self, city, aq_csv_fn, meo_csv_fn, need_scale=False):
+        self.need_scale = need_scale
+
         self.seq_data = {} # 48 * stations * aq_features
         self.city = city
 
         self.step_list = [3, 6, 12, 24]
         if (self.city == "beijing"):        
             self.aq_cols = [0, 1, 4]
+            self.aq_input_dims = 6
         else:
             self.aq_cols = [0, 1]
+            self.aq_input_dims = 6
+
+        if (need_scale):
+            tmp_aq_means, tmp_aq_scales = utils.get_scale_params(city, "aq")
+            self.aq_means = {k:[] for k in tmp_aq_means.keys()}
+            self.aq_scales = {k:[] for k in tmp_aq_scales.keys()}
+            tk = list(tmp_aq_means.keys())[0]
+            for i in range(len(tmp_aq_means[tk])):
+                if ((i % self.aq_input_dims) in self.aq_cols and i >= self.aq_input_dims):
+                    for k in tmp_aq_means.keys():
+                        self.aq_means[k].append(tmp_aq_means[k][i])
+                        self.aq_scales[k].append(tmp_aq_scales[k][i])
         
         self.aq_csv = aq_csv_fn
         self.meo_csv = meo_csv_fn
@@ -52,7 +67,33 @@ class SequencedAQData:
             concat_data.append(mean_data)
 
         res_data = np.concatenate(concat_data, axis=2)
-        return np.reshape(res_data, (1, self.stations, self.aq_features * len(self.step_list))) # stations * aq_features * timesteps
+        res_data = np.reshape(res_data, (1, self.stations, self.aq_features * len(self.step_list))) # stations * aq_features * timesteps
+        
+        if (self.need_scale):
+            means = np.zeros(res_data.shape)
+            scales = np.zeros(res_data.shape)
+            for i, station_info in enumerate(self.aq_stations):
+                means[0, i, :] = np.array(self.aq_means[station_info[0]])
+                scales[0, i, :] = np.array(self.aq_scales[station_info[0]])
+            res_data = (res_data - means) / scales
+
+        return res_data
+
+    def reverse_scale(self, pred):
+    
+        if (self.need_scale):
+            new_pred = np.zeros(pred.shape)
+
+            for i, station_info in enumerate(self.aq_stations):
+                cur_station = station_info[0]
+                for t in range(1):
+                    cur_means, cur_scales = self.aq_means[cur_station], self.aq_scales[cur_station]
+                    new_pred[t, i, :] = [pred[t, i, d] * cur_scales[d] + cur_means[d] for d in range(pred.shape[2])]
+                    
+            return new_pred
+        else:
+            return pred
+        
     
     def load_from_csvs(self, csvs):
         self.station_names = []
@@ -107,7 +148,7 @@ class SequencedAQData:
         print(self.seq_data.shape)
         self.seq_data = np.reshape(self.seq_data, (self.times, self.stations, self.aq_features))
 
-def getSequencedAQDataForDate(city, date):
+def getSequencedAQDataForDate(city, date, need_scale=False):
 
     aq_csv_fn = "./data/preprocessed/{city}_aqstation.csv".format(city=city)
 
@@ -116,7 +157,7 @@ def getSequencedAQDataForDate(city, date):
     else:
         meo_csv_fn = "./data/Beijing_grid_weather_station.csv"
 
-    seq = SequencedAQData(city, aq_csv_fn, meo_csv_fn)
+    seq = SequencedAQData(city, aq_csv_fn, meo_csv_fn, need_scale=need_scale)
     
     date_prev1 = utils.prev_date(date)
     date_prev2 = utils.prev_date(date_prev1)

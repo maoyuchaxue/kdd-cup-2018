@@ -45,6 +45,7 @@ tf.app.flags.DEFINE_integer("num_epochs", 50, "number of epochs")
 tf.app.flags.DEFINE_integer("valid_epochs", 3, "interval of validate epochs")
 tf.app.flags.DEFINE_float("keep_prob", 0.9, "drop out rate")
 tf.app.flags.DEFINE_boolean("is_train", arg.test, "False to inference")
+tf.app.flags.DEFINE_boolean("is_scaled", False, "True if want to use scaled dataset (this option is for test only)")
 tf.app.flags.DEFINE_string("data_dir", "", "data dir")
 tf.app.flags.DEFINE_string("train_dir", "./train/" + arg.city + "/" + arg.name, "training dir")
 tf.app.flags.DEFINE_integer("inference_version", arg.inf, "the version for inferencing")
@@ -55,7 +56,7 @@ if (FLAGS.is_train):
         is_train=FLAGS.is_train, date=FLAGS.current_test_date)
 else:
     data = pred_dataset.getPredDataset(FLAGS.city_name, FLAGS.time_step_name, batch_size=1,
-        date=FLAGS.current_test_date)
+        date=FLAGS.current_test_date, need_scale=FLAGS.is_scaled)
 
 dist_mat = data.get_dist_matrix()
 (aq_stations, meo_stations, dist_dims) = dist_mat.shape
@@ -154,7 +155,7 @@ with tf.Session() as sess:
                 mlp_model.saver.save(sess, '%s/checkpoint' % FLAGS.train_dir, global_step=mlp_model.global_step)
 
     else:
-        seq_aq_data = sequenced_data.getSequencedAQDataForDate(arg.city, FLAGS.current_test_date)
+        seq_aq_data = sequenced_data.getSequencedAQDataForDate(arg.city, FLAGS.current_test_date, FLAGS.is_scaled)
         mlp_model = AQModel(False, aq_stations=aq_stations, meo_stations=meo_stations, aq_features=data.aq_dim, prev_aq_features=data.prev_aq_dims, meo_features=data.meo_expanded_dims, dist_features=data.dist_dims, keep_prob=FLAGS.keep_prob)
 
         if FLAGS.inference_version == 0:
@@ -177,6 +178,8 @@ with tf.Session() as sess:
             feed = {mlp_model.x_: X_batch, mlp_model.prev_y_: prev_y_batch, mlp_model.y_: y_empty, mlp_model.dist_mat: dist_mat, mlp_model.cur_batch_size: 1}
 
             pred, = sess.run([mlp_model.pred], feed)
+
+            pred = seq_aq_data.reverse_scale(pred)
 
             seq_aq_data.add_row(pred)
             
