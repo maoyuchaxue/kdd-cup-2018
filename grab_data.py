@@ -185,7 +185,7 @@ def parseData(city, raw_dates, date, day1, day2):
                 csv_file2.writerow(res)
 
             if time.find("23:00:00") != -1:
-                if len(hlist[gridid]) != 24:
+                if len(hlist[gridid]) < 24:
                     if len(lastday) != 0:
                         daydata = lastday
                     else:
@@ -193,11 +193,9 @@ def parseData(city, raw_dates, date, day1, day2):
                 else:
                     daydata = hres[15: ]
                     lastday = daydata
-                res = [time.split(' ')[0]]
-                # print(daydata)
                 dayres = updatelist(daylist[gridid], daydata, 1, 0)    
                 if tmpday == day1 or tmpday == day2:
-                    csv_file3.writerow(res + dayres)
+                    csv_file3.writerow([gridid] + [time.split(' ')[0]] + dayres)
 
 def genNextDay(date):
     date = date.split("-")
