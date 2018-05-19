@@ -8,11 +8,13 @@ import math
 import utils
 
 class PredDataset:
-    def __init__(self, meo_path, aq_csv, meo_csv, city, batch_size=50):
+    def __init__(self, meo_path, aq_csv, meo_csv, city, batch_size=50, need_scale=False):
         self.meo_path = meo_path
         self.meo_csv = meo_csv
         self.aq_csv = aq_csv
         self.batch_size = batch_size
+        self.need_scale = need_scale
+
 
         if (city == "beijing"):
             self.aq_dim = 3
@@ -22,6 +24,21 @@ class PredDataset:
             self.aq_dim = 2
             self.aq_input_dims = 3
             self.aq_features_in_file = [0, 1]
+
+        
+        if (need_scale):
+            self.meo_means, self.meo_scales = utils.get_scale_params(city, "meo")
+            
+            tmp_aq_means, tmp_aq_scales = utils.get_scale_params(city, "aq")
+            self.aq_means = {k:[] for k in tmp_aq_means.keys()}
+            self.aq_scales = {k:[] for k in tmp_aq_scales.keys()}
+
+            tk = list(tmp_aq_means.keys())[0]
+            for i in range(len(tmp_aq_means[tk])):
+                if ((i % self.aq_input_dims) in self.aq_features_in_file and i >= self.aq_input_dims):
+                    for k in tmp_aq_means.keys():
+                        self.aq_means[k].append(tmp_aq_means[k][i])
+                        self.aq_scales[k].append(tmp_aq_scales[k][i])
 
         self.meo_dim = 5
         self.time_steps = 5
@@ -54,6 +71,7 @@ class PredDataset:
         print(len(self.aq_stations), len(self.meo_stations))
 
 
+
     def load_data(self):
 
         meo_file = open(self.meo_path, "r")
@@ -68,7 +86,13 @@ class PredDataset:
                 continue
             cur_time = utils.time_to_int(l[1])
             cur_station = l[0]
+
             cur_data = [float(i) for i in l[2:]]
+            
+            if (self.need_scale):
+                cur_means, cur_scales = self.meo_means[cur_station], self.meo_scales[cur_station]
+                cur_data = [(cur_data[i] - cur_means[i]) / cur_scales[i] for i in range(len(cur_data))]
+            
             if (not cur_time in data_set):
                 data_set[cur_time] = [None for i in range(len(self.meo_stations))]
             data_set[cur_time][station_name_to_index[cur_station]] = cur_data
@@ -98,9 +122,24 @@ class PredDataset:
         end = self.data_ind + self.batch_size
         if (end > self.n):
             end = self.n
+        self.data_ind = end
         return self.pred_data[start:end]
 
-def getPredDataset(city, time_type="hourunit", batch_size=50, date="2018-05-02"):
+    def reverse_scale(self, pred):
+        if (self.need_scale):
+            new_pred = np.zeros(pred.shape)
+
+            for i, station_info in enumerate(self.aq_stations):
+                cur_station = station_info[0]
+                for t in range(48):
+                    cur_means, cur_scales = self.aq_means[cur_station], self.aq_scales[cur_station]
+                    new_pred[t, i, :] = [pred[t, i, d] * cur_scales[d] + cur_means[d] for d in range(pred.shape[2])]
+
+            return new_pred
+        else:
+            return pred
+
+def getPredDataset(city, time_type="hourunit", batch_size=50, date="2018-05-02", need_scale=False):
     
     filename = "./data/preprocessed/splitdata/{city}/{date}/{time_type}.csv".format(city=city, time_type=time_type, date=date)
     
@@ -109,7 +148,7 @@ def getPredDataset(city, time_type="hourunit", batch_size=50, date="2018-05-02")
         meo_csv_fn = "./data/London_grid_weather_station.csv"
     else:
         meo_csv_fn = "./data/Beijing_grid_weather_station.csv"
-    return PredDataset(filename, aq_csv_fn, meo_csv_fn, city, batch_size)
+    return PredDataset(filename, aq_csv_fn, meo_csv_fn, city, batch_size, need_scale=need_scale)
 
 if __name__ == "__main__":
     dataset = getPredDataset("beijing", "hourunit", batch_size=48)

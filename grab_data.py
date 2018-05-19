@@ -20,6 +20,7 @@ lastday = []
 
 should_redownload = False;
 
+
 def getAQData(city, date):
     if city == "beijing":
         city_short = "bj"
@@ -209,7 +210,7 @@ def genNextDay(date):
 
 def genRawDates(date):
     cur_t = utils.time_to_int(date)
-    dates = [utils.int_to_time(cur_t - 24 * i) for i in range(31)]
+    dates = [utils.int_to_time(cur_t - 24 * i) for i in range(4)]
     return [d.split(" ")[0] for d in dates][::-1]
 
 if __name__ == "__main__":

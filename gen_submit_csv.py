@@ -5,7 +5,7 @@ import math
 import utils
 import csv
 
-date = "2018-05-14"
+date = "2018-05-17"
 
 beijing_test_name = "aq_mlp_kp0.9"
 beijing_inf = 0
@@ -13,7 +13,7 @@ beijing_inf = 0
 london_test_name = "mlpl"
 london_inf = 0
 
-outfile_label = "tmp"
+outfile_label = "mlp"
 
 os.system("python3 ./aq_mlp_main.py --test --city beijing --inf {inf} --name {name} --date {date}".format(
     inf=beijing_inf, name=beijing_test_name, date=date))
