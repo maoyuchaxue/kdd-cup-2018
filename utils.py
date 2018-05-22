@@ -109,3 +109,4 @@ def genPredictTimelist(date):
         timelist.append(date + " " + str(i).zfill(2) + ":00:00")
 
     return timelist
+

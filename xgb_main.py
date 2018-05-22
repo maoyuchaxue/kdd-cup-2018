@@ -2,17 +2,15 @@ import xgboost as xgb
 from xgb_model import DataSet
 import numpy as np
 import csv
+from parse_actual_data import compData
+import sys
 
 # setup parameters for xgboost
 param = {}
 # scale weight of positive examples
-param['eta'] = 0.1
-param['max_depth'] = 8
+param['eta'] = 0.4
+param['max_depth'] = 10
 param['silent'] = 1
-
-def genActualAq():
-    pass
-
 
 def genAqlistPosi(aqlist, aqstation):
     cnt = 0
@@ -23,57 +21,11 @@ def genAqlistPosi(aqlist, aqstation):
             cnt = cnt + 1
     return -1
 
-if __name__ == "__main__":
-#    dataset = DataSet("beijing", True)
-
-    '''
-    dataset.trainEntrance()
-    num_round = 5
-
-    for i in range(35 * dataset.aq_num):
-#    for i in range(13 * dataset.aq_num):
-        print "generating model: " + str(i) + "  of " + str(35 * dataset.aq_num)
-        xg_train = xgb.DMatrix(dataset.model, label=dataset.label[:, i : i + 1])
-        bst = xgb.train(param, xg_train, num_round)
-        bst.save_model("./xgb_model/beijing_xgb" + str(i) + ".model")
-#        bst.save_model("./xgb_model/london_xgb" + str(i) + ".model")
-
-    '''
-
-    dataset = DataSet("london", True)
-    dataset.testEntrance("2018-05-20")
-    london_test = xgb.DMatrix(dataset.test)
-    london_aqstation = dataset.aq_station
-
-    london_predict = np.array([])
-    for i in range(13 * dataset.aq_num):
-        print "predicting model: " + str(i) + "  of " + str(13 * dataset.aq_num)
-        bst = xgb.Booster(param)
-        bst.load_model("./xgb_model/london_xgb" + str(i) + ".model")
-        if london_predict.shape[0] == 0:
-            london_predict = bst.predict(london_test).reshape((48,1))
-        else:
-            london_predict = np.concatenate((london_predict, bst.predict(london_test).reshape(48,1)), axis=1)
-
-    dataset = DataSet("beijing", True)
-    dataset.testEntrance("2018-05-20")
-    beijing_test = xgb.DMatrix(dataset.test)
-    beijing_aqstation = dataset.aq_station
-
-    beijing_predict = np.array([])
-    for i in range(35 * dataset.aq_num):
-        print "predicting model: " + str(i) + "  of " + str(35 * dataset.aq_num)
-        bst = xgb.Booster(param)
-        bst.load_model("./xgb_model/beijing_xgb" + str(i) + ".model")
-        if beijing_predict.shape[0] == 0:
-            beijing_predict = bst.predict(beijing_test).reshape((48,1))
-        else:
-            beijing_predict = np.concatenate((beijing_predict, bst.predict(beijing_test).reshape(48,1)), axis=1)
-
+def saveSubmission(beijing_predict, london_predict, beijing_aqstation, london_aqstation, date):
     isFirst = True
     with open("./data/sample_submission.csv", "r") as f:
         csv_file = csv.reader(f)
-        csv_file2 = csv.writer(open("./data/ans/2018-05-20.csv", "w"))
+        csv_file2 = csv.writer(open("./data/ans/" + date + ".csv", "w"))
         for line in csv_file:
             if isFirst:
                 isFirst = False
@@ -92,3 +44,68 @@ if __name__ == "__main__":
                 line[2] = london_predict[station_index][ld_aq_index * 3 + 1]
 
             csv_file2.writerow(line)
+
+def trainModel():
+    num_round = 5
+
+    dataset = DataSet("beijing", True)
+    dataset.trainEntrance()
+    for i in range(35 * dataset.aq_num):
+        print "generating model: " + str(i) + "  of " + str(35 * dataset.aq_num)
+        xg_train = xgb.DMatrix(dataset.model, label=dataset.label[:, i : i + 1])
+        bst = xgb.train(param, xg_train, num_round)
+        bst.save_model("./xgb_model/beijing_xgb" + str(i) + ".model")
+
+    dataset = DataSet("london", True)
+    dataset.trainEntrance()
+    for i in range(13 * dataset.aq_num):
+        print "generating model: " + str(i) + "  of " + str(35 * dataset.aq_num)
+        xg_train = xgb.DMatrix(dataset.model, label=dataset.label[:, i : i + 1])
+        bst = xgb.train(param, xg_train, num_round)
+        bst.save_model("./xgb_model/london_xgb" + str(i) + ".model")
+
+def genPredict(date):
+    dataset = DataSet("london", True)
+    dataset.testEntrance(date)
+    london_test = xgb.DMatrix(dataset.test)
+    london_aqstation = dataset.aq_station
+
+    london_predict = np.array([])
+    for i in range(13 * dataset.aq_num):
+        print "predicting model: " + str(i) + "  of " + str(13 * dataset.aq_num)
+        bst = xgb.Booster(param)
+        bst.load_model("./xgb_model/london_xgb" + str(i) + ".model")
+        if london_predict.shape[0] == 0:
+            london_predict = bst.predict(london_test).reshape((48,1))
+        else:
+            london_predict = np.concatenate((london_predict, bst.predict(london_test).reshape(48,1)), axis=1)
+
+    dataset = DataSet("beijing", True)
+    dataset.testEntrance(date)
+    beijing_test = xgb.DMatrix(dataset.test)
+    beijing_aqstation = dataset.aq_station
+
+    beijing_predict = np.array([])
+    for i in range(35 * dataset.aq_num):
+        print "predicting model: " + str(i) + "  of " + str(35 * dataset.aq_num)
+        bst = xgb.Booster(param)
+        bst.load_model("./xgb_model/beijing_xgb" + str(i) + ".model")
+        if beijing_predict.shape[0] == 0:
+            beijing_predict = bst.predict(beijing_test).reshape((48,1))
+        else:
+            beijing_predict = np.concatenate((beijing_predict, bst.predict(beijing_test).reshape(48,1)), axis=1)
+
+    return beijing_aqstation, london_aqstation, beijing_predict, london_predict
+
+if __name__ == "__main__":
+    date = sys.argv[1]
+
+#    trainModel()
+
+    beijing_aqstation, london_aqstation, beijing_predict, london_predict = genPredict(date)
+
+    saveSubmission(beijing_predict, london_predict, beijing_aqstation, london_aqstation, date)
+
+#    print compData("beijing", beijing_predict, date, beijing_aqstation)
+#    print compData("london", london_predict, date, london_aqstation)
+
