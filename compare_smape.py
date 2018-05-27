@@ -2,8 +2,8 @@ import csv
 import utils
 import numpy as np
 
-fn_pred = "./data/output/london-2018-05-10-mlpl.out.csv"
-fn_actual = "./data/output/05-10-london-actual.csv"
+fn_pred = "./data/output/london-2018-05-17-mlpl.out.csv"
+fn_actual = "./data/output/05-17-london-actual.csv"
 city = "ld"
 
 if (city == "bj"):

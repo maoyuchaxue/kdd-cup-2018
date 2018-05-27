@@ -160,11 +160,11 @@ def getSequencedAQDataForDate(city, date, need_scale=False):
     seq = SequencedAQData(city, aq_csv_fn, meo_csv_fn, need_scale=need_scale)
     
     date_prev1 = utils.prev_date(date)
-    date_prev2 = utils.prev_date(date_prev1)
-    print(date_prev2, date_prev1)
+    # date_prev2 = utils.prev_date(date_prev1)
+    # print(date_prev2, date_prev1)
 
     path_format = "./data/preprocessed/splitdata/{city}/{date}/aq.csv"
-    seq.load_from_csvs([path_format.format(date=date_prev2, city=city), path_format.format(date=date_prev1, city=city)])
+    seq.load_from_csvs([path_format.format(date=date_prev1, city=city), path_format.format(date=date, city=city)])
     return seq
 
 if (__name__ == "__main__"):

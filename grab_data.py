@@ -212,7 +212,7 @@ def genNextDay(date):
 
 def genRawDates(date):
     cur_t = utils.time_to_int(date)
-    dates = [utils.int_to_time(cur_t - 24 * i) for i in range(4)]
+    dates = [utils.int_to_time(cur_t - 24 * i) for i in range(40)]
     return [d.split(" ")[0] for d in dates][::-1]
 
 if __name__ == "__main__":
@@ -240,3 +240,4 @@ if __name__ == "__main__":
         prev_date2 = utils.prev_date(prev_date)
         getAQData(city, prev_date)
         getAQData(city, prev_date2)
+        getAQData(city, today)
