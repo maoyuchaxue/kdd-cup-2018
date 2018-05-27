@@ -1,7 +1,7 @@
 import numpy as np
 import csv
 import math
-import timecomp
+from utils import *
 
 class DataSet:
     def __init__(self, city = "beijing", isTrain = True):
@@ -63,6 +63,11 @@ class DataSet:
         self.model = np.zeros(shape=(row, self.col))
         self.label = np.zeros(shape=(row, len(self.aq_station) * self.aq_num))
 
+
+    def initTestMatrix(self):
+        self.col = len(self.meo_station) * 50
+        self.test = np.zeros(shape=(48, self.col))
+
     def genTimeList(self, isMeo):
         if isMeo:
             datakind = "meo_data"
@@ -80,6 +85,7 @@ class DataSet:
                     first_day = line[0]
                     break
 
+        print firststation
         self.timelist = []
         isStart = False
         fn = "./data/preprocessed/hourunit/" + datakind + "/" + self.city + "/" + firststation
@@ -99,14 +105,12 @@ class DataSet:
         self.genTimeList(True)
         self.initTrainMatrix(len(self.timelist))
         cnt = 0
-        print len(self.timelist)
         for station in self.meo_station:
             print "generating meo:  " + str(cnt + 1) + "of " + str(len(self.meo_station))
             self.genDataSet(station, cnt)
             cnt = cnt + 1
 
         cnt = 0
-        print len(self.timelist)
         for station in self.aq_station:
             print "generating aq: " + station[0] + " " + str(cnt + 1) + " of " + str(len(self.aq_station))
             self.genDataSetLabel(station[0], cnt)
@@ -157,20 +161,28 @@ class DataSet:
             csv_file = csv.reader(f)
             list_index = 0
             for line in csv_file:
-                date1 = line[0].split(" ")[0]
-                date2 = self.timelist[list_index].split(" ")[0]
-                time1 = line[0].split(" ")[1]
-                time2 = self.timelist[list_index].split(" ")[1]
                 
-                if timecomp.datecomp(date1, date2) != 1 or \
-                    timecomp.timecomp(time1, time2) != 1:
+                if time_to_int(line[0]) < time_to_int(self.timelist[list_index]):
                     continue
-                else:
+                elif time_to_int(line[0]) == time_to_int(self.timelist[list_index]):
                     self.label[list_index][cnt * self.aq_num : (cnt + 1) * self.aq_num] = \
                         map(lambda x : float(x), line[1 : 1 + self.aq_num])
                     list_index = list_index + 1  
                     if list_index == len(self.timelist):
                         break
+                elif time_to_int(line[0]) > time_to_int(self.timelist[list_index]):
+                    while time_to_int(line[0]) > time_to_int(self.timelist[list_index]):
+                        self.label[list_index][cnt * self.aq_num : (cnt + 1) * self.aq_num] = \
+                            self.label[list_index - 1][cnt * self.aq_num : (cnt + 1) * self.aq_num]
+                        list_index = list_index + 1
+                        if list_index == len(self.timelist):
+                            break
+                    if time_to_int(line[0]) == time_to_int(self.timelist[list_index]):
+                        self.label[list_index][cnt * self.aq_num : (cnt + 1) * self.aq_num] = \
+                            map(lambda x : float(x), line[1 : 1 + self.aq_num])
+                        list_index = list_index + 1  
+                        if list_index == len(self.timelist):
+                            break
         if list_index != len(self.timelist):
             print "somewhere wrong" 
             print self.timelist[list_index]
@@ -179,3 +191,36 @@ class DataSet:
                 print self.timelist[list_index]
                 list_index = list_index + 1
             '''
+    
+    def testEntrance(self, date):
+        self.initTestMatrix()
+        cnt = 0
+        for station in self.meo_station:
+            self.genTestDataSet(station, cnt, date)
+            cnt = cnt + 1
+
+    def genTestDataSet(self, gridid, cnt, date):
+        fn = "./data/preprocessed/splitdata/" + self.city + "/" + date + "/hourunit.csv"
+        list_index = 0
+        with open(fn, "r") as f:
+            csv_file = csv.reader(f)
+            for line in csv_file:
+                if line[0] != gridid:
+                    continue
+                else:
+                    self.test[list_index][cnt * 50 : cnt * 50 + 25] = \
+                        map(lambda x : float(x), line[2:])
+                    list_index = list_index + 1
+
+        fn = "./data/preprocessed/splitdata/" + self.city + "/" + date + "/dayunit.csv"
+        list_index = 0
+        with open(fn, "r") as f:
+            csv_file = csv.reader(f)
+            for line in csv_file:
+                if line[0] != gridid:
+                    continue
+                else:
+                    for i in range(24):
+                        self.test[list_index][cnt * 50 + 25 : cnt * 50 + 50] = \
+                            map(lambda x : float(x), line[2:])
+                        list_index = list_index + 1

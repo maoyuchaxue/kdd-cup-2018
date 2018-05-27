@@ -98,3 +98,15 @@ def get_scale_params(city, data_type="aq", time_type="hourunit"):
 
     print(len(means), len(scales))
     return means, scales
+
+def genPredictTimelist(date):
+    timelist = []
+    for i in range(24):
+        timelist.append(date + " " + str(i).zfill(2) + ":00:00")
+    
+    nextdate = next_date(date)
+    for i in range(24):
+        timelist.append(date + " " + str(i).zfill(2) + ":00:00")
+
+    return timelist
+
