@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/junxianshen/Documents/本学期课程/数据挖掘/kddcup/code/xgb_main.py", line 3, in <module>
+    import xgboost as xgb
+ImportError: No module named xgboost

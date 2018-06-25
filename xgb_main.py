@@ -1,9 +1,15 @@
+# -*- coding:utf-8 -*-
+
 import xgboost as xgb
 from xgb_model import DataSet
 import numpy as np
 import csv
 from parse_actual_data import compData
 import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+abspath = "/Users/junxianshen/Documents/本学期课程/数据挖掘/kddcup/code"
 
 # setup parameters for xgboost
 param = {}
@@ -23,9 +29,9 @@ def genAqlistPosi(aqlist, aqstation):
 
 def saveSubmission(beijing_predict, london_predict, beijing_aqstation, london_aqstation, date):
     isFirst = True
-    with open("./data/sample_submission.csv", "r") as f:
+    with open(abspath + "/data/sample_submission.csv", "r") as f:
         csv_file = csv.reader(f)
-        csv_file2 = csv.writer(open("./data/ans/" + date + ".csv", "w"))
+        csv_file2 = csv.writer(open(abspath + "/data/ans/" + date + ".csv", "w"))
         for line in csv_file:
             if isFirst:
                 isFirst = False
@@ -54,7 +60,7 @@ def trainModel():
         print "generating model: " + str(i) + "  of " + str(35 * dataset.aq_num)
         xg_train = xgb.DMatrix(dataset.model, label=dataset.label[:, i : i + 1])
         bst = xgb.train(param, xg_train, num_round)
-        bst.save_model("./xgb_model/beijing_xgb" + str(i) + ".model")
+        bst.save_model(abspath + "/xgb_model/beijing_xgb" + str(i) + ".model")
 
     dataset = DataSet("london", True)
     dataset.trainEntrance()
@@ -62,7 +68,7 @@ def trainModel():
         print "generating model: " + str(i) + "  of " + str(35 * dataset.aq_num)
         xg_train = xgb.DMatrix(dataset.model, label=dataset.label[:, i : i + 1])
         bst = xgb.train(param, xg_train, num_round)
-        bst.save_model("./xgb_model/london_xgb" + str(i) + ".model")
+        bst.save_model(abspath + "/xgb_model/london_xgb" + str(i) + ".model")
 
 def genPredict(date):
     dataset = DataSet("london", True)
@@ -74,7 +80,7 @@ def genPredict(date):
     for i in range(13 * dataset.aq_num):
         print "predicting model: " + str(i) + "  of " + str(13 * dataset.aq_num)
         bst = xgb.Booster(param)
-        bst.load_model("./xgb_model/london_xgb" + str(i) + ".model")
+        bst.load_model(abspath + "/xgb_model/london_xgb" + str(i) + ".model")
         if london_predict.shape[0] == 0:
             london_predict = bst.predict(london_test).reshape((48,1))
         else:
@@ -89,7 +95,7 @@ def genPredict(date):
     for i in range(35 * dataset.aq_num):
         print "predicting model: " + str(i) + "  of " + str(35 * dataset.aq_num)
         bst = xgb.Booster(param)
-        bst.load_model("./xgb_model/beijing_xgb" + str(i) + ".model")
+        bst.load_model(abspath + "/xgb_model/beijing_xgb" + str(i) + ".model")
         if beijing_predict.shape[0] == 0:
             beijing_predict = bst.predict(beijing_test).reshape((48,1))
         else:

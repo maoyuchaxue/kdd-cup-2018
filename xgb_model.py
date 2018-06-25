@@ -1,7 +1,11 @@
+# -*- coding:utf-8 -*-
+
 import numpy as np
 import csv
 import math
 from utils import *
+
+abspath = "/Users/junxianshen/Documents/本学期课程/数据挖掘/kddcup/code"
 
 class DataSet:
     def __init__(self, city = "beijing", isTrain = True):
@@ -17,11 +21,11 @@ class DataSet:
 
         if city == "beijing":
             self.num_aq_station = 35
-            with open("./data/preprocessed/beijing_aqstation.csv", "r") as f:
+            with open(abspath + "/data/preprocessed/beijing_aqstation.csv", "r") as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     self.aq_station.append(line)
-            with open("./data/Beijing_grid_weather_station.csv", "r") as f:
+            with open(abspath + "/data/Beijing_grid_weather_station.csv", "r") as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     meo_station_list.append([line[0], line[2], line[1]])
@@ -29,16 +33,16 @@ class DataSet:
         else:
             # 13 predict, 11 others
             self.num_aq_station = 13 + 11
-            with open("./data/preprocessed/london_predict_aqstation.csv", "r") as f:
+            with open(abspath + "/data/preprocessed/london_predict_aqstation.csv", "r") as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     self.aq_station.append(line)
-            with open("./data/preprocessed/london_others_aqstation.csv", "r") as f:
+            with open(abspath + "/data/preprocessed/london_others_aqstation.csv", "r") as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     if line[0] != "CT2":
                         self.aq_station.append(line)
-            with open("./data/London_grid_weather_station.csv", "r") as f:
+            with open(abspath + "/data/London_grid_weather_station.csv", "r") as f:
                 csv_reader = csv.reader(f)
                 for line in csv_reader:
                     meo_station_list.append([line[0], line[2], line[1]])
@@ -77,7 +81,7 @@ class DataSet:
             firststation = self.aq_station[0][0] + ".csv"
 
         first_day = ""
-        fn = "./data/preprocessed/dayunit/" + datakind + "/" + self.city + "/" + firststation
+        fn = abspath + "/data/preprocessed/dayunit/" + datakind + "/" + self.city + "/" + firststation
         with open(fn) as f:
             csv_file = csv.reader(f)
             for line in csv_file:
@@ -88,7 +92,7 @@ class DataSet:
         print firststation
         self.timelist = []
         isStart = False
-        fn = "./data/preprocessed/hourunit/" + datakind + "/" + self.city + "/" + firststation
+        fn = abspath + "/data/preprocessed/hourunit/" + datakind + "/" + self.city + "/" + firststation
         with open(fn) as f:
             csv_file = csv.reader(f)
             for line in csv_file:
@@ -117,7 +121,7 @@ class DataSet:
             cnt = cnt + 1
 
     def genDataSet(self, gridid, cnt):
-        fn = "./data/preprocessed/hourunit/meo_data/" + self.city + "/" + gridid + ".csv"
+        fn = abspath + "/data/preprocessed/hourunit/meo_data/" + self.city + "/" + gridid + ".csv"
         with open(fn, "r") as f:
             csv_file = csv.reader(f)
             list_index = 0
@@ -134,7 +138,7 @@ class DataSet:
             print "somewhere wrong"  
             print list_index  
 
-        fn = "./data/preprocessed/dayunit/meo_data/" + self.city + "/" + gridid + ".csv"
+        fn = abspath + "/data/preprocessed/dayunit/meo_data/" + self.city + "/" + gridid + ".csv"
         with open(fn, "r") as f:
             csv_file = csv.reader(f)
             list_index = 0
@@ -156,7 +160,7 @@ class DataSet:
                 list_index = list_index + 1
 
     def genDataSetLabel(self, aqid, cnt):
-        fn = "./data/preprocessed/hourunit/aq_data/" + self.city + "/" + aqid + ".csv"
+        fn = abspath + "/data/preprocessed/hourunit/aq_data/" + self.city + "/" + aqid + ".csv"
         with open(fn, "r") as f:
             csv_file = csv.reader(f)
             list_index = 0
@@ -200,7 +204,7 @@ class DataSet:
             cnt = cnt + 1
 
     def genTestDataSet(self, gridid, cnt, date):
-        fn = "./data/preprocessed/splitdata/" + self.city + "/" + date + "/hourunit.csv"
+        fn = abspath + "/data/preprocessed/splitdata/" + self.city + "/" + date + "/hourunit.csv"
         list_index = 0
         with open(fn, "r") as f:
             csv_file = csv.reader(f)
@@ -212,7 +216,7 @@ class DataSet:
                         map(lambda x : float(x), line[2:])
                     list_index = list_index + 1
 
-        fn = "./data/preprocessed/splitdata/" + self.city + "/" + date + "/dayunit.csv"
+        fn = abspath + "/data/preprocessed/splitdata/" + self.city + "/" + date + "/dayunit.csv"
         list_index = 0
         with open(fn, "r") as f:
             csv_file = csv.reader(f)

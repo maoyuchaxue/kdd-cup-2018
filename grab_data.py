@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 import urllib2
 import csv
 from dataparser import calWind, updatelist
@@ -14,6 +16,8 @@ url_aq_format = "https://biendata.com/competition/airquality/{city_short}/{date}
 global lastday
 global lasthr
 
+abspath = "/Users/junxianshen/Documents/本学期课程/数据挖掘/kddcup/code"
+
 lasthr = []
 lastday = []
 # tmpstate = [time, temperature, pressure, humidity, winddirect, windspeed]
@@ -29,7 +33,7 @@ def getAQData(city, date):
     url = url_aq_format.format(city_short=city_short, date=date)
     print(url)
 
-    save_path = "./data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
+    save_path = abspath + "/data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
     save_fn = os.path.join(save_path, "aq.csv")
 
     if (not os.path.exists(save_path)):
@@ -65,7 +69,7 @@ def getRawPrevData(city, date):
     url = urlprefix + grid + date + "-0" + "/" + date + "-23" + "/2k0d1d8"
     print(url)
 
-    save_path = "./data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
+    save_path = abspath + "/data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
     save_fn = os.path.join(save_path, "raw.csv")
     if (not os.path.exists(save_path)):
         os.mkdir(save_path)
@@ -100,7 +104,7 @@ def getForeData(city, date):
         ct = "ld"
     url = urlprefix2 + ct + "/" + date + "-23/2k0d1d8"
 
-    save_path = "./data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
+    save_path = abspath + "/data/preprocessed/splitdata/{city}/{date}".format(date=date, city=city)
     save_fn = os.path.join(save_path, "forecast.csv")
 
     if (not os.path.exists(save_path)):
@@ -134,13 +138,13 @@ def parseData(city, raw_dates, date, day1, day2):
     global lastday
     global lasthr
     
-    fdir = "./data/preprocessed/splitdata/" + city + "/" + date + "/"
+    fdir = abspath + "/data/preprocessed/splitdata/" + city + "/" + date + "/"
     if not os.path.exists(fdir):
         os.mkdir(fdir)
 
     csvs = []
     for raw_date in raw_dates:
-        save_path = "./data/preprocessed/splitdata/" + city + "/" + raw_date + "/"
+        save_path = abspath + "/data/preprocessed/splitdata/" + city + "/" + raw_date + "/"
         raw_fn = os.path.join(save_path, "raw.csv")
         csvs.append(raw_fn)
     
@@ -210,7 +214,7 @@ def genNextDay(date):
 
 def genRawDates(date):
     cur_t = utils.time_to_int(date)
-    dates = [utils.int_to_time(cur_t - 24 * i) for i in range(4)]
+    dates = [utils.int_to_time(cur_t - 24 * i) for i in range(40)]
     return [d.split(" ")[0] for d in dates][::-1]
 
 if __name__ == "__main__":
