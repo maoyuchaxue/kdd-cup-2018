@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     with open("./data/sample_submission.csv", "r") as f:
         csv_file = csv.reader(f)
-        csv_file2 = csv.writer(open("./data/ans/api_" + date + ".csv", "w"))
+        csv_file2 = csv.writer(open("./data/ans/" + date + ".csv", "w"))
         for line in csv_file:
             if line[0] == "test_id":
                 csv_file2.writerow(line)
