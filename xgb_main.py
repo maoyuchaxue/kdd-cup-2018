@@ -42,7 +42,7 @@ def saveSubmission(beijing_predict, london_predict, beijing_aqstation, london_aq
             else:
                 line[1] = london_predict[station_index][ld_aq_index * 3]
                 line[2] = london_predict[station_index][ld_aq_index * 3 + 1]
-
+            line = [i if i > 0 else 0 for i in line]
             csv_file2.writerow(line)
 
 def trainModel():

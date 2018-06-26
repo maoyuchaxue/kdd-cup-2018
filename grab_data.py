@@ -199,14 +199,15 @@ def parseData(city, raw_dates, date, day1, day2):
                     csv_file3.writerow([gridid] + [time.split(' ')[0]] + dayres)
 
 def genNextDay(date):
-    date = date.split("-")
-    day = date[2]
-    tmpday = int(day) + 1
-    if tmpday == 32:
-        day = "01"
-    else:
-        day = str(tmpday).zfill(2)
-    return date[0] + "-" + date[1] + "-" + day
+    # date = date.split("-")
+    # day = date[2]
+    # tmpday = int(day) + 1
+    # if tmpday == 32:
+    #     day = "01"
+    # else:
+    #     day = str(tmpday).zfill(2)
+    # return date[0] + "-" + date[1] + "-" + day
+    return utils.next_date(date)
 
 def genRawDates(date):
     cur_t = utils.time_to_int(date)
@@ -220,6 +221,7 @@ if __name__ == "__main__":
     tomorrow = genNextDay(today)
     day_after_tomorrow = genNextDay(tomorrow)
     raw_dates = genRawDates(today)
+    print(tomorrow, day_after_tomorrow)
 
     for d in raw_dates:
         getRawPrevData("london", d)
