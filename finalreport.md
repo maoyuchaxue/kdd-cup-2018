@@ -97,28 +97,42 @@ Layer 2': $n \times 256 \to n \times 128$, Batch Normalization + 0.7 dropout
 
 ##  代码的组织结构
 
-### 数据获取
+考虑到我们写的功能没有那么复杂，所有功能都直接以脚本的形式呈现，这样开发和使用时都比较直观。
 
-dataset.py：为数据集模块，提供了以numpy array格式获取batch data的接口。
+### 数据预处理
 
-pred\_dataset.py：同样是数据集模块，但仅预测时使用。
+所有数据文件均被放在data文件夹下，预处理之后的结果也将产生在这里。
 
-grabdata.py：用于通过api获取下一天预测所需要的数据，如`python grabdata.py 2018-05-10`为获取5月10日的新数据，包括11,12日的天气预报数据，10日的天气、空气质量数据。
++ datainit.py：用于进行简单的预处理
+
++ dataparser.py：用于进行数据预处理
+
+### 数据获取与提交
+
++ dataset.py：为数据集模块，提供了以numpy array格式获取batch data的接口。
+
++ pred\_dataset.py：同样是数据集模块，但仅预测时使用。
+
++ grabdata.py：用于通过api获取下一天预测所需要的数据，如`python grabdata.py 2018-05-10`为获取5月10日的新数据，包括11,12日的天气预报数据，10日的天气、空气质量数据。
+
++ api\_submit.py：官方提供的api提交文件。
+
++ private\_config.py：包含队伍token等不便于放在github上的信息
 
 ### MLP模型
 
-mlp\_main.py ：MLP模型一的入口文件，--test参数可以指定为训练还是预测，--name指定模型名，--date在预测时指定预测的日期，--inf指定模型的版本（默认为最新版本），--city指定模型对应的城市。
++ mlp\_main.py ：MLP模型一的入口文件，--test参数可以指定为训练还是预测，--name指定模型名，--date在预测时指定预测的日期，--inf指定模型的版本（默认为最新版本），--city指定模型对应的城市。
 
-mlp\_model.py：为MLP模型一的具体实现。
++ mlp\_model.py：为MLP模型一的具体实现。
 
-aq\_mlp\_main.py：MLP模型二的入口文件，使用方式与模型一相同。
++ aq\_mlp\_main.py：MLP模型二的入口文件，使用方式与模型一相同。
 
-aq\_mlp\_model.py：为MLP模型二的具体实现。
++ aq\_mlp\_model.py：为MLP模型二的具体实现。
 
-sequenced\_data.py：用于实现模型二预测中的迭代预测功能（不断产生下一个预测数据、并用生成结果再次作为输入数据）
++ sequenced\_data.py：用于实现模型二预测中的迭代预测功能（不断产生下一个预测数据、并用生成结果再次作为输入数据）
 
 ### xgboost模型
 
-xgb_model.py：定义xgboost模型需要的数据。
++ xgb\_model.py：定义xgboost模型需要的数据。
 
-xgb_main.py：具体实现xgboost的训练、预测等等
++ xgb\_main.py：具体实现xgboost的训练、预测等等

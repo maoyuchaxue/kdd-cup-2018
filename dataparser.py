@@ -307,7 +307,6 @@ if __name__ == "__main__":
         print(grid[0])
         genEnhancedParsing("london", grid[0])
     
-    '''
     genRawAqData("beijing", True, False)
     genRawAqData("beijing", True, True)
     genRawAqData("london", False, False)
@@ -326,4 +325,3 @@ if __name__ == "__main__":
     for station in aqstation:
         print station[0]
         genAqEnhancedParsing("london", station[0])
-    '''
