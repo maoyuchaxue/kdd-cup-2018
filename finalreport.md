@@ -91,7 +91,7 @@ Layer 2': $n \times 256 \to n \times 128$, Batch Normalization + 0.7 dropout
 
 ## 最终采用的方案
 
-最终我们采用了xgboost（to be continued）
+最终我们采用了xgboost
 
 另一个采用的方案为MLP，在初始取得了相对较好的效果(SMAPE=0.44)，但之后随着日期变化，可能由于空气质量的分布整体发生了变化，模型的预测效果也渐渐变差，最终停滞在0.5左右。
 
@@ -117,3 +117,8 @@ aq\_mlp\_model.py：为MLP模型二的具体实现。
 
 sequenced\_data.py：用于实现模型二预测中的迭代预测功能（不断产生下一个预测数据、并用生成结果再次作为输入数据）
 
+### xgboost模型
+
+xgb_model.py：定义xgboost模型需要的数据。
+
+xgb_main.py：具体实现xgboost的训练、预测等等
