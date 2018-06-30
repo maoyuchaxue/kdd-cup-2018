@@ -2,9 +2,9 @@ import csv
 import utils
 import numpy as np
 
-fn_pred = "./data/output/london-2018-05-10-mlpl.out.csv"
-fn_actual = "./data/output/05-10-london-actual.csv"
-city = "ld"
+fn_pred = "./data/output/beijing-2018-05-22-aq.out.csv"
+fn_actual = "./data/output/05-22-beijing-actual.csv"
+city = "bj"
 
 if (city == "bj"):
     aq_cols = [0, 1, 4]

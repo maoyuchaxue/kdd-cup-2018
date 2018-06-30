@@ -185,7 +185,7 @@ def genEnhancedParsing(city, gridid):
         newdata = line[1:]
 
         hres = updatelist(hlist, newdata, 0, 0) 
-        res = newdata + hres
+        res = [float(t) for t in newdata] + hres
 
         if (len(res) >= 25):
             hour_res_arr.append(res)
@@ -203,7 +203,7 @@ def genEnhancedParsing(city, gridid):
     hour_res = np.array(hour_res_arr)
     hour_scaler = pre.StandardScaler()
     hour_scaler.fit(hour_res)
-    hour_res = hour_scaler.transform(hour_res)
+    # hour_res = hour_scaler.transform(hour_res)
 
     csv_file2_params.writerow([m for m in hour_scaler.mean_])
     csv_file2_params.writerow([m for m in hour_scaler.scale_])
@@ -213,7 +213,7 @@ def genEnhancedParsing(city, gridid):
     day_res = np.array(day_res_arr)
     day_scaler = pre.StandardScaler()
     day_scaler.fit(day_res)
-    day_res = day_scaler.transform(day_res)
+    # day_res = day_scaler.transform(day_res)
     csv_file3_params.writerow([m for m in day_scaler.mean_])
     csv_file3_params.writerow([m for m in day_scaler.scale_])
 
@@ -257,7 +257,7 @@ def genAqEnhancedParsing(city, stationid):
         newdata = line[1:]
 
         hres = updatelist(hlist, newdata, 0, datakind) 
-        res = newdata + hres
+        res = [float(t) for t in newdata] + hres
 
         if len(hres) == datakind * 4:
             hour_res_arr.append(res)
@@ -277,7 +277,7 @@ def genAqEnhancedParsing(city, stationid):
     hour_res = np.array(hour_res_arr)
     hour_scaler = pre.StandardScaler()
     hour_scaler.fit(hour_res)
-    hour_res = hour_scaler.transform(hour_res)
+    # hour_res = hour_scaler.transform(hour_res)
 
     csv_file2_params.writerow([m for m in hour_scaler.mean_])
     csv_file2_params.writerow([m for m in hour_scaler.scale_])
@@ -287,7 +287,7 @@ def genAqEnhancedParsing(city, stationid):
     day_res = np.array(day_res_arr)
     day_scaler = pre.StandardScaler()
     day_scaler.fit(day_res)
-    day_res = day_scaler.transform(day_res)
+    # day_res = day_scaler.transform(day_res)
     csv_file3_params.writerow([m for m in day_scaler.mean_])
     csv_file3_params.writerow([m for m in day_scaler.scale_])
 
@@ -382,15 +382,15 @@ if __name__ == "__main__":
     # genMeoPrepocessed("london")
 
 
-    gridlist = getGridList("beijing")
-    for grid in gridlist:
-        print(grid[0])
-        genEnhancedParsing("beijing", grid[0])
+    # gridlist = getGridList("beijing")
+    # for grid in gridlist:
+    #     print(grid[0])
+    #     genEnhancedParsing("beijing", grid[0])
         
-    gridlist = getGridList("london")
-    for grid in gridlist:
-        print(grid[0])
-        genEnhancedParsing("london", grid[0])
+    # gridlist = getGridList("london")
+    # for grid in gridlist:
+    #     print(grid[0])
+    #     genEnhancedParsing("london", grid[0])
     
     
     # genRawAqData("beijing", True, False)

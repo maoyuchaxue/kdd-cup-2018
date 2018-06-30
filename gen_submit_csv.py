@@ -5,9 +5,9 @@ import math
 import utils
 import csv
 
-date = "2018-05-17"
+date = "2018-05-31"
 
-beijing_test_name = "aq_mlp_kp0.9"
+beijing_test_name = "aq"
 beijing_inf = 0
 
 london_test_name = "mlpl"
@@ -65,7 +65,7 @@ f_out.write("test_id,PM2.5,PM10,O3\n")
 for name in station_list:
     station_data = station_dict[name]
     for i in range(48):
-        row_data = station_data[i]
+        row_data = [t if t > 0 else 0 for t in station_data[i]]
         if (len(row_data) == 2):
             row_data.append("")
         f_out.write(name + "#" + str(i) + "," + str(row_data[0]) + "," + str(row_data[1]) + "," + str(row_data[2]) + "\n")
